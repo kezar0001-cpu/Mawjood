@@ -19,9 +19,7 @@ class BusinessCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
-    final imageUrl = (business.imageUrl?.isNotEmpty ?? false)
-        ? business.imageUrl!
-        : (business.images.isNotEmpty ? business.images.first : null);
+    final imageUrl = business.primaryImage;
 
     return Card(
       elevation: 3,
@@ -100,7 +98,7 @@ class BusinessCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              business.location ?? '${business.city} • ${business.district}',
+                              business.displayAddress,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.bodySmall?.copyWith(color: Colors.black87),

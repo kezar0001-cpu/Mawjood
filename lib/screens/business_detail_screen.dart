@@ -1,9 +1,12 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../mock/mock_businesses.dart';
 import '../models/business.dart';
 import '../utils/app_colors.dart';
+import '../widgets/business_card.dart';
+import '../widgets/mawjood_action_button.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
   const BusinessDetailScreen({super.key, required this.business});
@@ -17,187 +20,522 @@ class BusinessDetailScreen extends StatefulWidget {
 }
 
 class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
-  late final PageController _pageController;
-  int _currentPage = 0;
+  bool _isFavorite = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _launch(String url) async {
-    final uri = Uri.parse(url);
+  Future<void> _launch(Uri uri) async {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Widget _buildCarousel() {
-    final images = widget.business.images;
-    if (images.isEmpty) {
-      return Container(
-        height: 200,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: AppColors.neutral,
-        ),
-        child: const Icon(Icons.image_not_supported, size: 48, color: AppColors.primary),
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر فتح الرابط حالياً')),
       );
     }
-    return Column(
-      children: [
-        SizedBox(
-          height: 220,
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) => setState(() => _currentPage = index),
-            itemCount: images.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: images[index],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    placeholder: (context, url) => Container(color: AppColors.neutral),
-                    errorWidget: (context, url, error) => Container(
-                      color: AppColors.neutral,
-                      child: const Icon(Icons.broken_image, color: AppColors.primary),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(images.length, (index) {
-            final isActive = index == _currentPage;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: isActive ? 14 : 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: isActive ? AppColors.primary : AppColors.neutral,
-                borderRadius: BorderRadius.circular(8),
-              ),
-            );
-          }),
-        ),
-      ],
-    );
   }
 
-  Widget _infoRow(IconData icon, String label) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
-      ),
+  void _callBusiness() {
+    final phone = widget.business.phone;
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('رقم الاتصال غير متوفر')),
+      );
+      return;
+    }
+    _launch(Uri.parse('tel:$phone'));
+  }
+
+  void _openWhatsapp() {
+    final whatsapp = widget.business.whatsapp;
+    if (whatsapp == null || whatsapp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('واتساب غير متوفر لهذا النشاط')), 
+      );
+      return;
+    }
+    final sanitized = whatsapp.replaceAll(RegExp(r'[^0-9]'), '');
+    _launch(Uri.parse('https://wa.me/$sanitized'));
+  }
+
+  Future<void> _shareBusiness() async {
+    final business = widget.business;
+    final shareText = [
+      business.name,
+      if (business.description.isNotEmpty) business.description,
+      if (business.displayAddress.isNotEmpty) business.displayAddress,
+    ].join('\n');
+
+    await Clipboard.setData(ClipboardData(text: shareText));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم نسخ تفاصيل النشاط للمشاركة')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final business = widget.business;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(business.name),
+    final theme = Theme.of(context).textTheme;
+    final heroImage = business.primaryImage;
+    final related = mockBusinesses
+        .where((b) => b.categoryId == business.categoryId && b.id != business.id)
+        .toList();
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        body: SafeArea(
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _HeroHeader(
+                      imageUrl: heroImage,
+                      onBack: () => Navigator.pop(context),
+                      isFavorite: _isFavorite,
+                      onToggleFavorite: () => setState(() => _isFavorite = !_isFavorite),
+                    ),
+                    Padding(
+                      padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            business.name,
+                            textAlign: TextAlign.right,
+                            style: theme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.darkText,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  business.categoryName,
+                                  style: theme.labelLarge?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Icon(Icons.star_rounded, color: AppColors.accentGold, size: 22),
+                              const SizedBox(width: 4),
+                              Text(
+                                business.rating.toStringAsFixed(1),
+                                style: theme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.darkText,
+                                ),
+                              ),
+                              if (business.ratingCount > 0) ...[
+                                const SizedBox(width: 6),
+                                Text(
+                                  '(${business.ratingCount})',
+                                  style: theme.bodyMedium?.copyWith(color: Colors.black54),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            business.description,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: theme.bodyLarge?.copyWith(color: Colors.black87),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: MawjoodActionButton(
+                                  icon: Icons.call_rounded,
+                                  label: 'اتصال',
+                                  onTap: _callBusiness,
+                                  backgroundColor: AppColors.primary.withOpacity(0.12),
+                                  foregroundColor: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: MawjoodActionButton(
+                                  icon: Icons.chat_rounded,
+                                  label: 'واتساب',
+                                  onTap: _openWhatsapp,
+                                  backgroundColor: AppColors.primaryLight.withOpacity(0.16),
+                                  foregroundColor: AppColors.darkText,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: MawjoodActionButton(
+                                  icon: Icons.share_rounded,
+                                  label: 'مشاركة',
+                                  onTap: _shareBusiness,
+                                  backgroundColor: AppColors.accentGold.withOpacity(0.2),
+                                  foregroundColor: AppColors.darkText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 28, thickness: 1, color: Color(0xFFECE9DF)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionTitle(title: 'نبذة عن المحل'),
+                          const SizedBox(height: 8),
+                          Text(
+                            business.description,
+                            textAlign: TextAlign.right,
+                            style: theme.bodyMedium?.copyWith(color: Colors.black87),
+                          ),
+                          const SizedBox(height: 20),
+                          _SectionTitle(title: 'الموقع'),
+                          const SizedBox(height: 10),
+                          _MapPreview(
+                            address: business.displayAddress,
+                            onTap: business.mapsUrl?.isNotEmpty == true
+                                ? () => _launch(Uri.parse(business.mapsUrl!))
+                                : null,
+                          ),
+                          if (business.displayAddress.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              business.displayAddress,
+                              textAlign: TextAlign.right,
+                              style: theme.bodyMedium?.copyWith(
+                                color: AppColors.darkText,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          if (business.openingHours != null && business.openingHours!.isNotEmpty) ...[
+                            _SectionTitle(title: 'ساعات العمل'),
+                            const SizedBox(height: 10),
+                            ...business.openingHours!.entries.map(
+                              (entry) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      entry.value,
+                                      style: theme.bodyMedium?.copyWith(color: Colors.black87),
+                                    ),
+                                    Text(
+                                      entry.key,
+                                      style: theme.bodyMedium?.copyWith(
+                                        color: Colors.black54,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                          if (business.tags.isNotEmpty) ...[
+                            _SectionTitle(title: 'مميزات'),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: business.tags
+                                  .map(
+                                    (tag) => Chip(
+                                      backgroundColor: AppColors.neutral,
+                                      labelStyle: theme.labelLarge?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.darkText,
+                                      ),
+                                      label: Text(tag),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (related.isNotEmpty) ...[
+                      const SizedBox(height: 28),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _SectionTitle(title: 'اقتراحات مشابهة'),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 190,
+                        child: ListView.separated(
+                          padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: related.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final item = related[index];
+                            return SizedBox(
+                              width: 280,
+                              child: BusinessCard(
+                                business: item,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => BusinessDetailScreen(business: item),
+                                    ),
+                                  );
+                                },
+                                onCall: item.phone.isNotEmpty
+                                    ? () => _launch(Uri.parse('tel:${item.phone}'))
+                                    : null,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+}
+
+class _HeroHeader extends StatelessWidget {
+  const _HeroHeader({
+    required this.imageUrl,
+    required this.onBack,
+    required this.isFavorite,
+    required this.onToggleFavorite,
+  });
+
+  final String? imageUrl;
+  final VoidCallback onBack;
+  final bool isFavorite;
+  final VoidCallback onToggleFavorite;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
           children: [
-            _buildCarousel(),
-            const SizedBox(height: 16),
-            Text(
-              business.name,
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+            Container(
+              height: 240,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.neutral,
+                image: imageUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(imageUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: imageUrl == null
+                  ? const Center(
+                      child: Icon(
+                        Icons.store_mall_directory_outlined,
+                        size: 56,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : null,
             ),
-            const SizedBox(height: 8),
-            Text(
-              business.categoryName,
-              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            _infoRow(Icons.location_on_outlined, '${business.city} - ${business.district}'),
-            _infoRow(Icons.access_time, business.openingHours),
-            _infoRow(Icons.description_outlined, business.description),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: business.phone.isEmpty
-                        ? null
-                        : () => _launch('tel:${business.phone}'),
-                    icon: const Icon(Icons.call),
-                    label: const Text('اتصال'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black38, Colors.black54],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: business.whatsapp.isEmpty
-                        ? null
-                        : () => _launch('https://wa.me/${business.whatsapp.replaceAll('+', '')}'),
-                    icon: const Icon(Icons.chat),
-                    label: const Text('واتساب'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryLight,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: business.mapsUrl.isEmpty ? null : () => _launch(business.mapsUrl),
-              icon: const Icon(Icons.map_outlined),
-              label: const Text('خرائط جوجل'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accentGold,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            PositionedDirectional(
+              top: 12,
+              start: 12,
+              child: _CircleButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                onTap: onBack,
+              ),
+            ),
+            PositionedDirectional(
+              top: 12,
+              end: 12,
+              child: _CircleButton(
+                icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                onTap: onToggleFavorite,
+                color: isFavorite ? Colors.redAccent : Colors.white,
+                iconColor: isFavorite ? Colors.white : AppColors.darkText,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({
+    required this.icon,
+    required this.onTap,
+    this.color,
+    this.iconColor,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color? color;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color ?? Colors.white,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Icon(
+            icon,
+            size: 20,
+            color: iconColor ?? AppColors.darkText,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MapPreview extends StatelessWidget {
+  const _MapPreview({
+    required this.address,
+    this.onTap,
+  });
+
+  final String address;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Stack(
+        children: [
+          Container(
+            height: 180,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.neutral,
+              image: const DecorationImage(
+                image: NetworkImage(
+                  'https://images.unsplash.com/photo-1505761671935-60b3a7427bad?auto=format&fit=crop&w=800&q=60',
+                ),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black.withOpacity(0.4), Colors.transparent],
+                ),
+              ),
+            ),
+          ),
+          PositionedDirectional(
+            bottom: 12,
+            start: 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'موقع المحل',
+                  style: theme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  address.isNotEmpty ? address : 'سيتم توفير العنوان قريباً',
+                  style: theme.bodyMedium?.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          PositionedDirectional(
+            bottom: 12,
+            end: 12,
+            child: ElevatedButton.icon(
+              onPressed: onTap,
+              icon: const Icon(Icons.map_rounded),
+              label: const Text('عرض على الخارطة'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.darkText,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return Text(
+      title,
+      textAlign: TextAlign.right,
+      style: theme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w800,
+        color: AppColors.darkText,
       ),
     );
   }
