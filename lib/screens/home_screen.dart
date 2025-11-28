@@ -63,6 +63,21 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Directionality(
+        textDirection: TextDirection.rtl,
+        child: FloatingActionButton.extended(
+          elevation: 6,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.search_rounded),
+          label: const Text(
+            AppText.quickSearch,
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          onPressed: () => _openSearch(_searchController.text),
+        ),
+      ),
     );
   }
 

@@ -9,4 +9,5 @@ class AppText {
   static const String about = 'حول التطبيق';
   static const String help = 'المساعدة والدعم';
   static const String mockBadge = 'وضع تجريبي';
+  static const String quickSearch = 'بحث سريع';
 }
