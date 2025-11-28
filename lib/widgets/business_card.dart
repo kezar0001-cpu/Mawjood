@@ -5,7 +5,7 @@ import '../models/business.dart';
 import '../utils/app_colors.dart';
 
 class BusinessCard extends StatelessWidget {
-  const BusinessCard({
+  BusinessCard({
     super.key,
     required this.business,
     required this.onTap,

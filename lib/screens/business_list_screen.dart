@@ -10,7 +10,7 @@ import '../widgets/mawjood_search_bar.dart';
 import 'business_detail_screen.dart';
 
 class BusinessListScreen extends StatefulWidget {
-  const BusinessListScreen({
+  BusinessListScreen({
     super.key,
     required this.category,
     this.businesses,
