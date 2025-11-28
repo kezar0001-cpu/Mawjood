@@ -8,6 +8,7 @@ import '../utils/app_colors.dart';
 import '../widgets/business_card.dart';
 import '../widgets/mawjood_search_bar.dart';
 import 'business_detail_screen.dart';
+import 'search_results_screen.dart';
 
 class BusinessListScreen extends StatefulWidget {
   BusinessListScreen({
@@ -77,6 +78,20 @@ class _BusinessListScreenState extends State<BusinessListScreen>
     });
   }
 
+  void _handleSubmit(String value) {
+    _handleSearch(value);
+    _openSearchResults(value);
+  }
+
+  void _openSearchResults(String value) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchResultsScreen(initialQuery: value),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
@@ -96,9 +111,9 @@ class _BusinessListScreenState extends State<BusinessListScreen>
               children: [
                 MawjoodSearchBar(
                   controller: _searchController,
-                  onSubmit: _handleSearch,
+                  onSubmit: _handleSubmit,
                   onChanged: _handleSearch,
-                  onFilterTap: () => _handleSearch(_searchController.text),
+                  onFilterTap: () => _openSearchResults(_searchController.text),
                   hintText: 'ابحث داخل ${widget.category.name}',
                 ),
                 const SizedBox(height: 12),
