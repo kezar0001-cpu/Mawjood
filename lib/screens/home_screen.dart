@@ -67,33 +67,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Modernized app bar with centered branding and consistent settings access.
-  AppBar _buildAppBar() {
-    return AppBar(
-      centerTitle: true,
-      title: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: const [
-          Text(
-            AppText.appName,
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
-          ),
-          SizedBox(height: 4),
-          Text(
-            AppText.tagline,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white70),
-          ),
-        ],
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsetsDirectional.only(end: 12),
-          child: IconButton(
-            tooltip: AppText.settings,
-            icon: const Icon(Icons.settings_rounded),
-            onPressed: () => Navigator.pushNamed(context, SettingsScreen.routeName),
-          ),
-        ),
-      ],
+  PreferredSizeWidget _buildAppBar() {
+    return _HomeHeader(
+      onSettingsPressed: () => Navigator.pushNamed(context, SettingsScreen.routeName),
     );
   }
 
@@ -230,6 +206,90 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget implements PreferredSizeWidget {
+  const _HomeHeader({required this.onSettingsPressed});
+
+  final VoidCallback onSettingsPressed;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(112);
+
+  @override
+  Widget build(BuildContext context) {
+    final double statusBarPadding = MediaQuery.of(context).padding.top;
+
+    return Container(
+      color: AppColors.primary,
+      padding: EdgeInsetsDirectional.fromSTEB(16, statusBarPadding + 12, 16, 16),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _HeaderIconButton(
+              tooltip: AppText.settings,
+              icon: Icons.settings_rounded,
+              onTap: onSettingsPressed,
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                AppText.appName,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                  color: Colors.white,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                AppText.tagline,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({required this.tooltip, required this.icon, required this.onTap});
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.white.withOpacity(0.12),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(icon, color: Colors.white, size: 22),
+          ),
+        ),
+      ),
     );
   }
 }
