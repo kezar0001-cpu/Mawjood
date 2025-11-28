@@ -47,13 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: _buildAppBar(),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Primary search entry point with soft shadow and RTL-friendly hint.
               _buildSearchBar(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               // Section title row with mock-mode badge for transparency.
               _buildSectionHeader(),
               const SizedBox(height: 16),
@@ -228,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 12),
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
               itemCount: categories.length,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
@@ -271,7 +271,7 @@ class _HomeHeader extends StatelessWidget implements PreferredSizeWidget {
 
     return Container(
       color: AppColors.primary,
-      padding: EdgeInsetsDirectional.fromSTEB(16, statusBarPadding + 12, 16, 16),
+      padding: EdgeInsetsDirectional.fromSTEB(16, statusBarPadding + 8, 16, 16),
       child: Stack(
         alignment: Alignment.center,
         children: [
