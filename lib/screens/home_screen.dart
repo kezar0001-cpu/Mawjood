@@ -7,8 +7,8 @@ import '../utils/app_text.dart';
 import '../widgets/category_card.dart';
 import '../widgets/mawjood_search_bar.dart';
 import 'business_list_screen.dart';
-import 'search_screen.dart';
 import 'settings_screen.dart';
+import 'search_results_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.service});
@@ -37,9 +37,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openSearch(String query) {
-    Navigator.pushNamed(context, SearchScreen.routeName, arguments: {
-      'query': query,
-    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchResultsScreen(initialQuery: query),
+      ),
+    );
   }
 
   @override

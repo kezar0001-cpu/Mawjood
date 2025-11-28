@@ -11,6 +11,8 @@ class MawjoodSearchBar extends StatelessWidget {
     this.onChanged,
     this.onFilterTap,
     this.hintText = AppText.searchHint,
+    this.actionIcon = Icons.search_rounded,
+    this.actionTooltip,
   });
 
   final TextEditingController controller;
@@ -18,6 +20,8 @@ class MawjoodSearchBar extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final VoidCallback? onFilterTap;
   final String hintText;
+  final IconData actionIcon;
+  final String? actionTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -61,9 +65,9 @@ class MawjoodSearchBar extends StatelessWidget {
             IconButton(
               padding: const EdgeInsets.all(8),
               constraints: const BoxConstraints(),
-              icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+              icon: Icon(actionIcon, color: AppColors.primary),
               onPressed: onFilterTap ?? () => onSubmit(controller.text),
-              tooltip: hintText,
+              tooltip: actionTooltip ?? hintText,
             ),
           ],
         ),

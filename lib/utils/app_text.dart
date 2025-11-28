@@ -10,4 +10,10 @@ class AppText {
   static const String help = 'المساعدة والدعم';
   static const String mockBadge = 'وضع تجريبي';
   static const String quickSearch = 'بحث سريع';
+  static const String searchResultsLabel = 'نتيجة بحث';
+  static const String searchResultsFor = 'نتائج البحث لـ';
+  static const String searchResultsCount = 'عدد النتائج:';
+  static const String searchNoResults = 'لا توجد نتائج مطابقة للبحث الحالي.';
+  static const String searchSuggestion = 'جرّب كلمة أبسط أو فئة مختلفة.';
+  static const String searchDetailedHint = 'اكتب اسم المحل، الفئة، أو المنطقة';
 }
