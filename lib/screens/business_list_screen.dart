@@ -4,9 +4,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../mock/mock_businesses.dart';
 import '../models/business.dart';
 import '../models/category.dart';
+import '../models/filters.dart';
+import '../services/filter_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/business_card.dart';
+import '../widgets/mawjood_action_button.dart';
 import '../widgets/mawjood_search_bar.dart';
+import '../widgets/filter_bottom_sheet.dart';
 import 'business_detail_screen.dart';
 import 'search_results_screen.dart';
 
@@ -31,7 +35,9 @@ class _BusinessListScreenState extends State<BusinessListScreen>
   final TextEditingController _searchController = TextEditingController();
   late final AnimationController _shimmerController;
   List<Business> _allBusinesses = [];
+  List<Business> _filteredBusinesses = [];
   List<Business> _visibleBusinesses = [];
+  BusinessFilters _filters = BusinessFilters.defaults();
   bool _isLoading = true;
 
   @override
@@ -58,24 +64,14 @@ class _BusinessListScreenState extends State<BusinessListScreen>
 
     setState(() {
       _allBusinesses = source;
+      _filteredBusinesses = source;
       _visibleBusinesses = source;
       _isLoading = false;
     });
   }
 
   void _handleSearch(String value) {
-    final query = value.trim().toLowerCase();
-    if (query.isEmpty) {
-      setState(() => _visibleBusinesses = _allBusinesses);
-      return;
-    }
-    setState(() {
-      _visibleBusinesses = _allBusinesses.where((business) {
-        return business.name.toLowerCase().contains(query) ||
-            business.description.toLowerCase().contains(query) ||
-            business.categoryName.toLowerCase().contains(query);
-      }).toList();
-    });
+    _refreshVisibleBusinesses(query: value);
   }
 
   void _handleSubmit(String value) {
@@ -90,6 +86,44 @@ class _BusinessListScreenState extends State<BusinessListScreen>
         builder: (_) => SearchResultsScreen(initialQuery: value),
       ),
     );
+  }
+
+  void _refreshVisibleBusinesses({String? query}) {
+    final searchQuery = (query ?? _searchController.text).trim().toLowerCase();
+    final filtered = applyFilters(_allBusinesses, _filters);
+    final visible = searchQuery.isEmpty
+        ? filtered
+        : filtered.where((business) {
+            return business.name.toLowerCase().contains(searchQuery) ||
+                business.description.toLowerCase().contains(searchQuery) ||
+                business.categoryName.toLowerCase().contains(searchQuery);
+          }).toList();
+
+    setState(() {
+      _filteredBusinesses = filtered;
+      _visibleBusinesses = visible;
+    });
+  }
+
+  Future<void> _openFilters() async {
+    final result = await showModalBottomSheet<BusinessFilters>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => FilterBottomSheet(
+        currentFilters: _filters,
+        onApply: (updatedFilters) {
+          Navigator.of(context).pop(updatedFilters);
+        },
+      ),
+    );
+
+    if (result != null) {
+      setState(() => _filters = result);
+      _refreshVisibleBusinesses();
+    }
   }
 
   @override
@@ -116,6 +150,41 @@ class _BusinessListScreenState extends State<BusinessListScreen>
                   onFilterTap: () => _openSearchResults(_searchController.text),
                   hintText: 'ابحث داخل ${widget.category.name}',
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: MawjoodActionButton(
+                        icon: Icons.tune_rounded,
+                        label: 'فلترة',
+                        onTap: _openFilters,
+                        backgroundColor: AppColors.primaryLight.withOpacity(0.12),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: MawjoodActionButton(
+                        icon: Icons.sort_rounded,
+                        label: 'ترتيب',
+                        onTap: _openFilters,
+                        backgroundColor: AppColors.primaryLight.withOpacity(0.12),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_filters.hasActiveFilters) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '${_filters.activeCount} عناصر مفعلة',
+                      style: theme.bodyMedium?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Text(
                   'استكشف خيارات ${widget.category.name}',

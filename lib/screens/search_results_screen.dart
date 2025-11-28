@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/business.dart';
+import '../models/filters.dart';
+import '../services/filter_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text.dart';
 import '../utils/search_helper.dart';
 import '../widgets/business_card.dart';
+import '../widgets/filter_bottom_sheet.dart';
+import '../widgets/mawjood_action_button.dart';
 import 'business_detail_screen.dart';
 
 class SearchResultsScreen extends StatefulWidget {
@@ -22,7 +26,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   late TextEditingController _controller;
   Timer? _debounce;
   List<Business> _results = [];
+  List<Business> _filteredResults = [];
   String _currentQuery = '';
+  BusinessFilters _filters = BusinessFilters.defaults();
 
   @override
   void initState() {
@@ -51,6 +57,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     setState(() {
       _currentQuery = value;
       _results = searchBusinessesLocally(trimmed);
+      _filteredResults = applyFilters(_results, _filters);
     });
   }
 
@@ -59,12 +66,35 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     _runSearch(value);
   }
 
+  void _openFilters() async {
+    final result = await showModalBottomSheet<BusinessFilters>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => FilterBottomSheet(
+        currentFilters: _filters,
+        onApply: (updatedFilters) {
+          Navigator.of(context).pop(updatedFilters);
+        },
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _filters = result;
+        _filteredResults = applyFilters(_results, _filters);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final trimmedQuery = _currentQuery.trim();
     final hasQuery = trimmedQuery.isNotEmpty;
-    final hasResults = _results.isNotEmpty;
+    final hasResults = _filteredResults.isNotEmpty;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -108,14 +138,49 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                 const SizedBox(height: 8),
                 if (hasQuery)
                   Text(
-                    '${AppText.searchResultsCount} ${_results.length}',
+                    '${AppText.searchResultsCount} ${_filteredResults.length}',
                     textAlign: TextAlign.right,
                     style: textTheme.bodyMedium?.copyWith(
                       color: Colors.black54,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: MawjoodActionButton(
+                        icon: Icons.tune_rounded,
+                        label: 'فلترة',
+                        onTap: _openFilters,
+                        backgroundColor: AppColors.primaryLight.withOpacity(0.12),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: MawjoodActionButton(
+                        icon: Icons.sort_rounded,
+                        label: 'ترتيب',
+                        onTap: _openFilters,
+                        backgroundColor: AppColors.primaryLight.withOpacity(0.12),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_filters.hasActiveFilters) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '${_filters.activeCount} عناصر مفعلة',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
                 Expanded(
                   child: hasQuery
                       ? hasResults
@@ -158,10 +223,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   Widget _buildResultsList() {
     return ListView.separated(
       padding: const EdgeInsetsDirectional.fromSTEB(4, 4, 4, 24),
-      itemCount: _results.length,
+      itemCount: _filteredResults.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final business = _results[index];
+        final business = _filteredResults[index];
         return BusinessCard(
           business: business,
           onTap: () {
