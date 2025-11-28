@@ -63,12 +63,18 @@ class BusinessCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            business.categoryName,
-                            style: theme.labelLarge?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
+                          Flexible(
+                            child: Text(
+                              business.categoryName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: theme.labelLarge?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 6),
