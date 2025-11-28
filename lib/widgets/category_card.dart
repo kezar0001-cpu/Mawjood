@@ -15,41 +15,69 @@ class CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.neutral.withOpacity(0.7)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              backgroundColor: category.color.withOpacity(0.14),
-              radius: 26,
-              child: Icon(category.icon, color: category.color, size: 22),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              category.name,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-            ),
-          ],
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE6E6E6)),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        splashColor: colorScheme.primary.withOpacity(0.08),
+        highlightColor: colorScheme.primary.withOpacity(0.03),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _CategoryIconBadge(
+                color: category.color,
+                icon: category.icon,
+                background: category.color.withOpacity(0.12),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                category.name,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _CategoryIconBadge extends StatelessWidget {
+  const _CategoryIconBadge({
+    required this.color,
+    required this.icon,
+    required this.background,
+  });
+
+  final Color color;
+  final IconData icon;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: background,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: color, size: 24),
     );
   }
 }
