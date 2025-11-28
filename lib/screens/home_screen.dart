@@ -206,25 +206,32 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
         final categories = snapshot.data ?? [];
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: categories.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 18,
-            crossAxisSpacing: 18,
-            childAspectRatio: 1,
-          ),
-          itemBuilder: (context, index) {
-            final category = categories[index];
-            return CategoryCard(
-              category: category,
-              onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  BusinessListScreen.routeName,
-                  arguments: {'id': category.id, 'name': category.name},
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = (constraints.maxWidth / 180).floor().clamp(2, 4);
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 12),
+              itemCount: categories.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 1,
+              ),
+              itemBuilder: (context, index) {
+                final category = categories[index];
+                return CategoryCard(
+                  category: category,
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      BusinessListScreen.routeName,
+                      arguments: {'id': category.id, 'name': category.name},
+                    );
+                  },
                 );
               },
             );
