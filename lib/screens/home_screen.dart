@@ -5,6 +5,7 @@ import '../services/supabase_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text.dart';
 import '../widgets/category_card.dart';
+import '../widgets/mawjood_search_bar.dart';
 import 'business_list_screen.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
@@ -90,53 +91,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Redesigned search bar with rounded corners, subtle shadow, and themed icon.
   Widget _buildSearchBar() {
-    return SizedBox(
-      width: double.infinity,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 14, 10),
-        child: Row(
-          children: [
-            const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                textAlign: TextAlign.right,
-                onSubmitted: _openSearch,
-                onChanged: (value) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: AppText.searchHint,
-                  hintStyle: TextStyle(
-                    color: Colors.black.withOpacity(0.45),
-                    fontWeight: FontWeight.w400,
-                  ),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                ),
-              ),
-            ),
-            IconButton(
-              padding: const EdgeInsets.all(8),
-              constraints: const BoxConstraints(),
-              icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
-              onPressed: () => _openSearch(_searchController.text),
-              tooltip: AppText.searchHint,
-            ),
-          ],
-        ),
-      ),
+    return MawjoodSearchBar(
+      controller: _searchController,
+      onSubmit: _openSearch,
+      onChanged: (_) => setState(() {}),
+      onFilterTap: () => _openSearch(_searchController.text),
     );
   }
 
@@ -241,10 +200,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 return CategoryCard(
                   category: category,
                   onTap: () {
-                    Navigator.pushNamed(
+                    Navigator.push(
                       context,
-                      BusinessListScreen.routeName,
-                      arguments: {'id': category.id, 'name': category.name},
+                      MaterialPageRoute(
+                        builder: (_) => BusinessListScreen(category: category),
+                      ),
                     );
                   },
                 );

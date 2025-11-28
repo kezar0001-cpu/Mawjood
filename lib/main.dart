@@ -8,6 +8,8 @@ import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
 import 'services/supabase_service.dart';
+import 'models/business.dart';
+import 'models/category.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_text.dart';
 
@@ -74,14 +76,15 @@ class MawjoodApp extends StatelessWidget {
       },
       onGenerateRoute: (settings) {
         if (settings.name == BusinessListScreen.routeName) {
-          final args = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (_) => BusinessListScreen(
-              service: supabaseService,
-              categoryId: args['id'] as String,
-              categoryName: args['name'] as String,
-            ),
-          );
+          final args = settings.arguments;
+          if (args is Map<String, dynamic> && args['category'] is Category) {
+            return MaterialPageRoute(
+              builder: (_) => BusinessListScreen(
+                category: args['category'] as Category,
+                businesses: args['businesses'] as List<Business>?,
+              ),
+            );
+          }
         }
         if (settings.name == BusinessDetailScreen.routeName) {
           final args = settings.arguments as Map<String, dynamic>;
