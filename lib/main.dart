@@ -33,7 +33,7 @@ ThemeData buildTheme() {
         borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
   );
