@@ -10,115 +10,203 @@ class BusinessCard extends StatelessWidget {
     required this.business,
     required this.onTap,
     this.onCall,
-    this.onWhatsApp,
   });
 
   final Business business;
   final VoidCallback onTap;
   final VoidCallback? onCall;
-  final VoidCallback? onWhatsApp;
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = business.images.isNotEmpty ? business.images.first : null;
+    final theme = Theme.of(context).textTheme;
+    final imageUrl = (business.imageUrl?.isNotEmpty ?? false)
+        ? business.imageUrl!
+        : (business.images.isNotEmpty ? business.images.first : null);
+
     return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      elevation: 3,
+      margin: EdgeInsets.zero,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: imageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        width: 76,
-                        height: 76,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          width: 76,
-                          height: 76,
-                          color: AppColors.neutral,
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          width: 76,
-                          height: 76,
-                          color: AppColors.neutral,
-                          child: const Icon(Icons.store, color: AppColors.primary),
-                        ),
-                      )
-                    : Container(
-                        width: 76,
-                        height: 76,
-                        color: AppColors.neutral,
-                        child: const Icon(Icons.store, color: AppColors.primary),
-                      ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      business.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      business.categoryName,
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined, size: 18, color: AppColors.darkText),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            '${business.city} • ${business.district}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13, color: AppColors.darkText),
+          padding: const EdgeInsets.all(14),
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _BusinessImage(imageUrl: imageUrl),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              business.name,
+                              textAlign: TextAlign.right,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.darkText,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        if (onCall != null)
-                          IconButton(
-                            icon: const Icon(Icons.call, color: AppColors.primary),
-                            onPressed: onCall,
-                            tooltip: 'اتصال',
+                          const SizedBox(width: 12),
+                          _CallButton(onCall: onCall),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Text(
+                            business.categoryName,
+                            style: theme.labelLarge?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        if (onWhatsApp != null)
-                          IconButton(
-                            icon: const Icon(Icons.chat, color: AppColors.primaryLight),
-                            onPressed: onWhatsApp,
-                            tooltip: 'واتساب',
+                          const SizedBox(width: 6),
+                          _RatingStars(rating: business.rating),
+                          const SizedBox(width: 4),
+                          Text(
+                            business.rating.toStringAsFixed(1),
+                            style: theme.bodySmall?.copyWith(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        business.description,
+                        textAlign: TextAlign.right,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.bodyMedium?.copyWith(color: Colors.black87),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(Icons.place_outlined, size: 18, color: AppColors.primary),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              business.location ?? '${business.city} • ${business.district}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.bodySmall?.copyWith(color: Colors.black87),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.neutral,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'يبعد ٢ كم',
+                              style: theme.labelMedium?.copyWith(
+                                color: AppColors.darkText,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CallButton extends StatelessWidget {
+  const _CallButton({required this.onCall});
+
+  final VoidCallback? onCall;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IconButton(
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+        icon: const Icon(Icons.call_rounded, color: AppColors.primary),
+        onPressed: onCall,
+        tooltip: 'اتصال',
+      ),
+    );
+  }
+}
+
+class _RatingStars extends StatelessWidget {
+  const _RatingStars({required this.rating});
+
+  final double rating;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (index) {
+        final starValue = index + 1;
+        final isHalf = rating + 0.5 >= starValue && rating < starValue;
+        final isFilled = rating >= starValue;
+        return Icon(
+          isFilled
+              ? Icons.star_rounded
+              : isHalf
+                  ? Icons.star_half_rounded
+                  : Icons.star_border_rounded,
+          size: 18,
+          color: AppColors.accentGold,
+        );
+      }),
+    );
+  }
+}
+
+class _BusinessImage extends StatelessWidget {
+  const _BusinessImage({required this.imageUrl});
+
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 92,
+        height: 92,
+        color: AppColors.neutral,
+        child: imageUrl != null
+            ? CachedNetworkImage(
+                imageUrl: imageUrl!,
+                fit: BoxFit.cover,
+                width: 92,
+                height: 92,
+                placeholder: (context, url) => Container(color: AppColors.neutral),
+                errorWidget: (context, url, error) => const Icon(Icons.store_mall_directory_outlined, color: AppColors.primary),
+              )
+            : const Icon(Icons.store_mall_directory_outlined, color: AppColors.primary),
       ),
     );
   }
