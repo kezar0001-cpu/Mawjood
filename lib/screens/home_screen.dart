@@ -75,47 +75,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Redesigned search bar with rounded corners, subtle shadow, and themed icon.
   Widget _buildSearchBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.12),
-              shape: BoxShape.circle,
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
-            padding: const EdgeInsets.all(10),
-            child: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              textAlign: TextAlign.right,
-              onSubmitted: _openSearch,
-              decoration: const InputDecoration(
-                hintText: AppText.searchHint,
-                border: InputBorder.none,
-                isDense: true,
+          ],
+        ),
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 14, 10),
+        child: Row(
+          children: [
+            const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                textAlign: TextAlign.right,
+                onSubmitted: _openSearch,
+                onChanged: (value) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: AppText.searchHint,
+                  hintStyle: TextStyle(
+                    color: Colors.black.withOpacity(0.45),
+                    fontWeight: FontWeight.w400,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                ),
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
-            onPressed: () => _openSearch(_searchController.text),
-          ),
-        ],
+            IconButton(
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(),
+              icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+              onPressed: () => _openSearch(_searchController.text),
+              tooltip: AppText.searchHint,
+            ),
+          ],
+        ),
       ),
     );
   }
