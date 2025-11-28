@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/category.dart';
+import '../utils/app_colors.dart';
 
 class CategoryCard extends StatelessWidget {
   const CategoryCard({
@@ -19,18 +20,26 @@ class CategoryCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Ink(
         decoration: BoxDecoration(
-          color: category.color.withOpacity(0.1),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.neutral.withOpacity(0.7)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             CircleAvatar(
-              backgroundColor: category.color.withOpacity(0.15),
-              radius: 24,
-              child: Icon(category.icon, color: category.color),
+              backgroundColor: category.color.withOpacity(0.14),
+              radius: 26,
+              child: Icon(category.icon, color: category.color, size: 22),
             ),
             const SizedBox(height: 12),
             Text(
