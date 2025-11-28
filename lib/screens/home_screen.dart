@@ -44,107 +44,192 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(AppText.appName, style: TextStyle(fontWeight: FontWeight.bold)),
-            Text(
-              AppText.tagline,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: Colors.white70),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.pushNamed(context, SettingsScreen.routeName),
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
-                controller: _searchController,
-                textAlign: TextAlign.right,
-                onSubmitted: _openSearch,
-                decoration: InputDecoration(
-                  hintText: AppText.searchHint,
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.tune),
-                    onPressed: () => _openSearch(_searchController.text),
-                  ),
-                ),
-              ),
+              // Primary search entry point with soft shadow and RTL-friendly hint.
+              _buildSearchBar(),
+              const SizedBox(height: 24),
+              // Section title row with mock-mode badge for transparency.
+              _buildSectionHeader(),
               const SizedBox(height: 16),
-              Row(
-                children: const [
-                  Text(
-                    AppText.categoriesTitle,
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-                  ),
-                  SizedBox(width: 8),
-                  Chip(
-                    backgroundColor: AppColors.primary,
-                    label: Text(
-                      AppText.mockBadge,
-                      style: TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  )
-                ],
-              ),
-              const SizedBox(height: 12),
-              FutureBuilder<List<Category>>(
-                future: _categoriesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return const Text('تعذر تحميل التصنيفات');
-                  }
-                  final categories = snapshot.data ?? [];
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: categories.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 1.2,
-                    ),
-                    itemBuilder: (context, index) {
-                      final category = categories[index];
-                      return CategoryCard(
-                        category: category,
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            BusinessListScreen.routeName,
-                            arguments: {'id': category.id, 'name': category.name},
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
+              // Premium grid of categories with refined spacing.
+              _buildCategoryGrid(),
             ],
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openSearch(_searchController.text),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.search),
-        label: const Text('بحث سريع'),
+    );
+  }
+
+  /// Modernized app bar with centered branding and consistent settings access.
+  AppBar _buildAppBar() {
+    return AppBar(
+      centerTitle: true,
+      title: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Text(
+            AppText.appName,
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+          ),
+          SizedBox(height: 4),
+          Text(
+            AppText.tagline,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white70),
+          ),
+        ],
       ),
+      actions: [
+        Padding(
+          padding: const EdgeInsetsDirectional.only(end: 12),
+          child: IconButton(
+            tooltip: AppText.settings,
+            icon: const Icon(Icons.settings_rounded),
+            onPressed: () => Navigator.pushNamed(context, SettingsScreen.routeName),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Redesigned search bar with rounded corners, subtle shadow, and themed icon.
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            padding: const EdgeInsets.all(10),
+            child: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              textAlign: TextAlign.right,
+              onSubmitted: _openSearch,
+              decoration: const InputDecoration(
+                hintText: AppText.searchHint,
+                border: InputBorder.none,
+                isDense: true,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+            onPressed: () => _openSearch(_searchController.text),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Section header with clear titling and a restyled mock badge for transparency.
+  Widget _buildSectionHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                AppText.categoriesTitle,
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.darkText),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'اختر مجالاً للبدء في الاستكشاف',
+                style: TextStyle(fontWeight: FontWeight.w400, fontSize: 14, color: Colors.black54),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+          ),
+          child: Row(
+            children: const [
+              Icon(Icons.shield_outlined, size: 16, color: AppColors.primary),
+              SizedBox(width: 6),
+              Text(
+                AppText.mockBadge,
+                style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Premium-styled grid of category cards with consistent breathing room.
+  Widget _buildCategoryGrid() {
+    return FutureBuilder<List<Category>>(
+      future: _categoriesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Text('تعذر تحميل التصنيفات', textAlign: TextAlign.center),
+          );
+        }
+        final categories = snapshot.data ?? [];
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: categories.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 1,
+          ),
+          itemBuilder: (context, index) {
+            final category = categories[index];
+            return CategoryCard(
+              category: category,
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  BusinessListScreen.routeName,
+                  arguments: {'id': category.id, 'name': category.name},
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }
