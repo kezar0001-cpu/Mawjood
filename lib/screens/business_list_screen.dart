@@ -126,10 +126,11 @@ class _BusinessListScreenState extends State<BusinessListScreen>
                                   return BusinessCard(
                                     business: business,
                                     onTap: () {
-                                      Navigator.pushNamed(
+                                      Navigator.push(
                                         context,
-                                        BusinessDetailScreen.routeName,
-                                        arguments: {'business': business},
+                                        MaterialPageRoute(
+                                          builder: (_) => BusinessDetailScreen(business: business),
+                                        ),
                                       );
                                     },
                                     onCall: business.phone.isEmpty
