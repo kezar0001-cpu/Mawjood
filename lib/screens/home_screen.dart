@@ -127,20 +127,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Section header with clear titling and a restyled mock badge for transparency.
   Widget _buildSectionHeader() {
+    final textTheme = Theme.of(context).textTheme;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
               Text(
                 AppText.categoriesTitle,
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.darkText),
+                textAlign: TextAlign.right,
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  color: AppColors.darkText,
+                ),
               ),
-              SizedBox(height: 4),
-              Text(
+              const SizedBox(height: 8),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: Container(
+                  width: 36,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGold,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
                 'اختر مجالاً للبدء في الاستكشاف',
+                textAlign: TextAlign.right,
                 style: TextStyle(fontWeight: FontWeight.w400, fontSize: 14, color: Colors.black54),
               ),
             ],
