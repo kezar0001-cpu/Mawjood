@@ -13,8 +13,6 @@ import 'models/category.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_text.dart';
 
-final SupabaseService supabaseService = SupabaseService(useMock: true);
-
 ThemeData buildTheme() {
   final base = ThemeData(
     colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
@@ -48,7 +46,9 @@ ThemeData buildTheme() {
   );
 }
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.initialize();
   runApp(const MawjoodApp());
 }
 
@@ -70,8 +70,8 @@ class MawjoodApp extends StatelessWidget {
       ],
       initialRoute: HomeScreen.routeName,
       routes: {
-        HomeScreen.routeName: (_) => HomeScreen(service: supabaseService),
-        SearchScreen.routeName: (_) => SearchScreen(service: supabaseService),
+        HomeScreen.routeName: (_) => const HomeScreen(),
+        SearchScreen.routeName: (_) => const SearchScreen(),
         SettingsScreen.routeName: (_) => const SettingsScreen(),
       },
       onGenerateRoute: (settings) {

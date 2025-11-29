@@ -31,12 +31,12 @@ List<Business> applyFilters(List<Business> all, BusinessFilters filters) {
       break;
     case 'popular':
       filtered.sort((a, b) {
-        final ratingCountA = a.ratingCount;
-        final ratingCountB = b.ratingCount;
-        if (ratingCountA == ratingCountB) {
+        final scoreA = a.popularScore ?? 0;
+        final scoreB = b.popularScore ?? 0;
+        if (scoreA == scoreB) {
           return b.rating.compareTo(a.rating);
         }
-        return ratingCountB.compareTo(ratingCountA);
+        return scoreB.compareTo(scoreA);
       });
       break;
     case 'price':
