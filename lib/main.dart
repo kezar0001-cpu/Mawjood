@@ -234,10 +234,10 @@ class _MawjoodAppState extends State<MawjoodApp> {
       ],
       initialRoute: _hasSeenOnboarding ? HomeScreen.routeName : OnboardingScreen.routeName,
       routes: {
-        OnboardingScreen.routeName: (_) => const OnboardingScreen(),
-        HomeScreen.routeName: (_) => const HomeScreen(),
-        SearchScreen.routeName: (_) => const SearchScreen(),
-        SettingsScreen.routeName: (_) => const SettingsScreen(),
+        OnboardingScreen.routeName: (_) => OnboardingScreen(),
+        HomeScreen.routeName: (_) => HomeScreen(),
+        SearchScreen.routeName: (_) => SearchScreen(),
+        SettingsScreen.routeName: (_) => SettingsScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == BusinessListScreen.routeName) {

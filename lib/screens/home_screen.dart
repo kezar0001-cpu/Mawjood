@@ -323,7 +323,7 @@ class _HomeHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Text(
                 AppText.appName,
                 textAlign: TextAlign.center,
