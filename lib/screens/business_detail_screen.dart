@@ -1,4 +1,5 @@
-import 'dart:io' show Platform;
+// FIXED: Removed dart:io import for Web compatibility - use kIsWeb instead
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -300,14 +301,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       return;
     }
 
-    // Use different URLs for iOS and Android
+    // FIXED: Use Web-compatible URL scheme
+    // For Web and all platforms, use Google Maps HTTPS URL which works universally
     final Uri mapsUrl;
-    if (Platform.isIOS) {
-      // Apple Maps URL
-      mapsUrl = Uri.parse('https://maps.apple.com/?q=$lat,$lng');
+    if (kIsWeb) {
+      // Web: Use Google Maps web URL
+      mapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     } else {
-      // Google Maps geo: URI for Android
-      mapsUrl = Uri.parse('geo:$lat,$lng?q=$lat,$lng');
+      // Mobile: Use universal https scheme that works on both iOS and Android
+      mapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     }
 
     _launch(mapsUrl);
