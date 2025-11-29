@@ -1,102 +1,67 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
 class Business {
   final String id;
   final String name;
   final String categoryId;
-  final String categoryName;
   final String description;
-  final List<String> images;
-  final List<String> features;
-  final double rating;
-  final int ratingCount;
-  final String phone;
-  final String? whatsapp;
+  final String city;
   final String address;
-  final Map<String, String>? openingHours;
+  final String phone;
+  final double rating;
   final double? latitude;
   final double? longitude;
-  final String? imageUrl;
-  final String? mapsUrl;
-  final String city;
-  final String district;
-  final String? location;
-  final int? popularScore;
+  final List<String> images;
+  final List<String> features;
 
   const Business({
     required this.id,
     required this.name,
     required this.categoryId,
-    this.categoryName = '',
     required this.description,
-    this.images = const [],
-    this.features = const [],
-    this.rating = 0,
-    this.ratingCount = 0,
-    required this.phone,
-    this.whatsapp,
+    required this.city,
     required this.address,
-    this.openingHours,
+    required this.phone,
+    this.rating = 0,
     this.latitude,
     this.longitude,
-    this.imageUrl,
-    this.mapsUrl,
-    this.city = '',
-    this.district = '',
-    this.location,
-    this.popularScore,
+    this.images = const [],
+    this.features = const [],
   });
 
-  factory Business.fromJson(Map<String, dynamic> json) {
+  factory Business.fromMap(Map<String, dynamic> map) {
     return Business(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      categoryId: json['category_id']?.toString() ?? '',
-      categoryName: json['category_name']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      images: (json['images'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? '',
+      categoryId: map['category_id']?.toString() ?? '',
+      description: map['description']?.toString() ?? '',
+      city: map['city']?.toString() ?? '',
+      address: map['address']?.toString() ?? '',
+      phone: map['phone']?.toString() ?? '',
+      rating: (map['rating'] as num?)?.toDouble() ?? 0,
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
+      images: (map['images'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       features:
-          (json['features'] as List? ?? json['tags'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      rating: (json['rating'] as num?)?.toDouble() ?? 0,
-      ratingCount: (json['rating_count'] as num?)?.toInt() ?? 0,
-      phone: json['phone']?.toString() ?? '',
-      whatsapp: json['whatsapp']?.toString(),
-      address: json['address']?.toString() ?? json['location']?.toString() ?? '',
-      openingHours: (json['opening_hours'] as Map?)?.map(
-        (key, value) => MapEntry(key.toString(), value.toString()),
-      ),
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
-      imageUrl: json['image_url']?.toString() ?? json['imageUrl']?.toString(),
-      mapsUrl: json['maps_url']?.toString(),
-      city: json['city']?.toString() ?? '',
-      district: json['district']?.toString() ?? '',
-      location: json['location']?.toString(),
-      popularScore: (json['popular_score'] as num?)?.toInt(),
+          (map['features'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
       'category_id': categoryId,
-      'category_name': categoryName,
       'description': description,
-      'images': images,
-      'features': features,
-      'rating': rating,
-      'rating_count': ratingCount,
-      'phone': phone,
-      'whatsapp': whatsapp,
+      'city': city,
       'address': address,
-      'opening_hours': openingHours,
+      'phone': phone,
+      'rating': rating,
       'latitude': latitude,
       'longitude': longitude,
-      'image_url': imageUrl,
-      'maps_url': mapsUrl,
-      'city': city,
-      'district': district,
-      'location': location,
-      'popular_score': popularScore,
+      'images': images,
+      'features': features,
     };
   }
 
@@ -104,72 +69,41 @@ class Business {
     String? id,
     String? name,
     String? categoryId,
-    String? categoryName,
     String? description,
-    List<String>? images,
-    List<String>? features,
-    double? rating,
-    int? ratingCount,
-    String? phone,
-    String? whatsapp,
+    String? city,
     String? address,
-    Map<String, String>? openingHours,
+    String? phone,
+    double? rating,
     double? latitude,
     double? longitude,
-    String? imageUrl,
-    String? mapsUrl,
-    String? city,
-    String? district,
-    String? location,
-    int? popularScore,
+    List<String>? images,
+    List<String>? features,
   }) {
     return Business(
       id: id ?? this.id,
       name: name ?? this.name,
       categoryId: categoryId ?? this.categoryId,
-      categoryName: categoryName ?? this.categoryName,
       description: description ?? this.description,
-      images: images ?? this.images,
-      features: features ?? this.features,
-      rating: rating ?? this.rating,
-      ratingCount: ratingCount ?? this.ratingCount,
-      phone: phone ?? this.phone,
-      whatsapp: whatsapp ?? this.whatsapp,
+      city: city ?? this.city,
       address: address ?? this.address,
-      openingHours: openingHours ?? this.openingHours,
+      phone: phone ?? this.phone,
+      rating: rating ?? this.rating,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-      imageUrl: imageUrl ?? this.imageUrl,
-      mapsUrl: mapsUrl ?? this.mapsUrl,
-      city: city ?? this.city,
-      district: district ?? this.district,
-      location: location ?? this.location,
-      popularScore: popularScore ?? this.popularScore,
+      images: images ?? this.images,
+      features: features ?? this.features,
     );
   }
 
-  List<String> get tags => features;
-
-  String? get primaryImage {
-    if (imageUrl != null && imageUrl!.isNotEmpty) return imageUrl;
-    if (images.isNotEmpty) return images.first;
-    return null;
-  }
+  String? get primaryImage => images.isNotEmpty ? images.first : null;
 
   String get displayAddress {
-    if (address.isNotEmpty) return address;
-    if (location != null && location!.isNotEmpty) return location!;
-    if (city.isNotEmpty && district.isNotEmpty) return '$city • $district';
-    if (city.isNotEmpty) return city;
-    if (district.isNotEmpty) return district;
-    return '';
-  }
-
-  String get primaryOpeningHours {
-    if (openingHours != null && openingHours!.isNotEmpty) {
-      final entry = openingHours!.entries.first;
-      return '${entry.key}: ${entry.value}';
+    if (address.isNotEmpty && city.isNotEmpty) {
+      return '$city • $address';
     }
-    return '';
+    if (address.isNotEmpty) {
+      return address;
+    }
+    return city;
   }
 }

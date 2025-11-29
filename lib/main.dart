@@ -86,12 +86,15 @@ class MawjoodApp extends StatelessWidget {
             );
           }
         }
-        if (settings.name == BusinessDetailScreen.routeName) {
-          final args = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (_) => BusinessDetailScreen(business: args['business']),
-          );
-        }
+    if (settings.name == BusinessDetailScreen.routeName) {
+      final args = settings.arguments as Map<String, dynamic>;
+      return MaterialPageRoute(
+        builder: (_) => BusinessDetailScreen(
+          businessId: args['businessId'] as String,
+          initialBusiness: args['business'] as Business?,
+        ),
+      );
+    }
         return null;
       },
     );

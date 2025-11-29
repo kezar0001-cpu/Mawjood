@@ -10,11 +10,13 @@ class BusinessCard extends StatelessWidget {
     required this.business,
     required this.onTap,
     this.onCall,
+    this.categoryLabel,
   });
 
   final Business business;
   final VoidCallback onTap;
   final VoidCallback? onCall;
+  final String? categoryLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -22,9 +24,7 @@ class BusinessCard extends StatelessWidget {
     final imageUrl = business.primaryImage;
     final locationLabel = business.city.isNotEmpty
         ? business.city
-        : (business.district.isNotEmpty
-            ? business.district
-            : (business.categoryName.isNotEmpty ? business.categoryName : 'متاح')); 
+        : (categoryLabel != null && categoryLabel!.isNotEmpty ? categoryLabel! : 'متاح');
 
     return Card(
       elevation: 3,
@@ -72,7 +72,7 @@ class BusinessCard extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              business.categoryName,
+                              categoryLabel ?? business.city,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.right,

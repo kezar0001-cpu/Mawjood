@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/business.dart';
@@ -7,7 +6,6 @@ import '../models/category.dart';
 import '../models/filters.dart';
 import '../repositories/business_repository.dart';
 import '../services/filter_service.dart';
-import '../services/supabase_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/business_card.dart';
 import '../widgets/mawjood_action_button.dart';
@@ -37,7 +35,6 @@ class _BusinessListScreenState extends State<BusinessListScreen>
   final TextEditingController _searchController = TextEditingController();
   late final AnimationController _shimmerController;
   final BusinessRepository _repository = BusinessRepository();
-  RealtimeChannel? _channel;
   List<Business> _allBusinesses = [];
   List<Business> _filteredBusinesses = [];
   List<Business> _visibleBusinesses = [];
@@ -52,14 +49,12 @@ class _BusinessListScreenState extends State<BusinessListScreen>
         AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
           ..repeat();
     _loadBusinesses();
-    _subscribeToRealtime();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _shimmerController.dispose();
-    _channel?.unsubscribe();
     super.dispose();
   }
 
@@ -70,19 +65,11 @@ class _BusinessListScreenState extends State<BusinessListScreen>
     });
 
     try {
-      final fetched = widget.businesses ??
-          await _repository.getBusinessesByCategory(widget.category.id);
-      final hydrated = fetched
-          .map(
-            (business) => business.copyWith(
-              categoryName: widget.category.displayName,
-              categoryId: widget.category.id,
-            ),
-          )
-          .toList();
+      final fetched =
+          widget.businesses ?? await _repository.fetchByCategory(widget.category.id);
 
       setState(() {
-        _allBusinesses = hydrated;
+        _allBusinesses = fetched;
         _refreshVisibleBusinesses();
         _isLoading = false;
       });
@@ -92,19 +79,6 @@ class _BusinessListScreenState extends State<BusinessListScreen>
         _errorMessage = 'تعذر تحميل الأنشطة حالياً';
       });
     }
-  }
-
-  void _subscribeToRealtime() {
-    if (SupabaseService.useMock) return;
-
-    _channel = SupabaseService.client
-        .channel('public:businesses')
-        .on(
-          RealtimeListenTypes.postgresChanges,
-          const ChannelFilter(event: '*', schema: 'public', table: 'businesses'),
-          (payload, [ref]) => _loadBusinesses(),
-        )
-        .subscribe();
   }
 
   void _handleSearch(String value) {
@@ -142,9 +116,8 @@ class _BusinessListScreenState extends State<BusinessListScreen>
     return source.where((business) {
       return business.name.toLowerCase().contains(searchQuery) ||
           business.description.toLowerCase().contains(searchQuery) ||
-          business.categoryName.toLowerCase().contains(searchQuery) ||
-          business.features
-              .any((tag) => tag.toLowerCase().contains(searchQuery));
+          business.city.toLowerCase().contains(searchQuery) ||
+          business.features.any((tag) => tag.toLowerCase().contains(searchQuery));
     }).toList();
   }
 
@@ -257,11 +230,15 @@ class _BusinessListScreenState extends State<BusinessListScreen>
                                   final business = _visibleBusinesses[index];
                                   return BusinessCard(
                                     business: business,
+                                    categoryLabel: widget.category.displayName,
                                     onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => BusinessDetailScreen(business: business),
+                                          builder: (_) => BusinessDetailScreen(
+                                            businessId: business.id,
+                                            initialBusiness: business,
+                                          ),
                                         ),
                                       );
                                     },

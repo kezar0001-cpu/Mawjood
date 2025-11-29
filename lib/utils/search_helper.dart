@@ -10,6 +10,6 @@ List<Business> searchBusinessesLocally(String query, {List<Business>? all}) {
   return businesses.where((business) {
     return business.name.toLowerCase().contains(lowerQuery) ||
         business.description.toLowerCase().contains(lowerQuery) ||
-        business.categoryName.toLowerCase().contains(lowerQuery);
+        business.city.toLowerCase().contains(lowerQuery);
   }).toList();
 }

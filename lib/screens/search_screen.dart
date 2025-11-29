@@ -98,11 +98,15 @@ class _SearchScreenState extends State<SearchScreen> {
                         final business = _results[index];
                         return BusinessCard(
                           business: business,
+                          categoryLabel: business.city,
                           onTap: () {
                             Navigator.pushNamed(
                               context,
                               BusinessDetailScreen.routeName,
-                              arguments: {'business': business},
+                              arguments: {
+                                'businessId': business.id,
+                                'business': business,
+                              },
                             );
                           },
                         );

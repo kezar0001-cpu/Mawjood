@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _categoriesFuture = _categoryRepository.getCategories();
+    _categoriesFuture = _categoryRepository.fetchAll();
   }
 
   @override
