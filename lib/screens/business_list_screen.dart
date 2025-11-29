@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../mock/mock_businesses.dart';
 import '../models/business.dart';
 import '../models/category.dart';
 import '../models/filters.dart';
+import '../repositories/business_repository.dart';
 import '../services/filter_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/business_card.dart';
@@ -34,11 +34,13 @@ class _BusinessListScreenState extends State<BusinessListScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   late final AnimationController _shimmerController;
+  final BusinessRepository _repository = BusinessRepository();
   List<Business> _allBusinesses = [];
   List<Business> _filteredBusinesses = [];
   List<Business> _visibleBusinesses = [];
   BusinessFilters _filters = BusinessFilters.defaults();
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -57,17 +59,26 @@ class _BusinessListScreenState extends State<BusinessListScreen>
   }
 
   Future<void> _loadBusinesses() async {
-    final source = widget.businesses ??
-        mockBusinesses.where((b) => b.categoryId == widget.category.id).toList();
-
-    await Future.delayed(const Duration(milliseconds: 500));
-
     setState(() {
-      _allBusinesses = source;
-      _filteredBusinesses = source;
-      _visibleBusinesses = source;
-      _isLoading = false;
+      _isLoading = true;
+      _errorMessage = null;
     });
+
+    try {
+      final fetched =
+          widget.businesses ?? await _repository.fetchByCategory(widget.category.id);
+
+      setState(() {
+        _allBusinesses = fetched;
+        _refreshVisibleBusinesses();
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'تعذر تحميل الأنشطة حالياً';
+      });
+    }
   }
 
   void _handleSearch(String value) {
@@ -89,20 +100,25 @@ class _BusinessListScreenState extends State<BusinessListScreen>
   }
 
   void _refreshVisibleBusinesses({String? query}) {
-    final searchQuery = (query ?? _searchController.text).trim().toLowerCase();
     final filtered = applyFilters(_allBusinesses, _filters);
-    final visible = searchQuery.isEmpty
-        ? filtered
-        : filtered.where((business) {
-            return business.name.toLowerCase().contains(searchQuery) ||
-                business.description.toLowerCase().contains(searchQuery) ||
-                business.categoryName.toLowerCase().contains(searchQuery);
-          }).toList();
+    final visible = _applySearchQuery(filtered, query ?? _searchController.text);
 
     setState(() {
       _filteredBusinesses = filtered;
       _visibleBusinesses = visible;
     });
+  }
+
+  List<Business> _applySearchQuery(List<Business> source, String query) {
+    final searchQuery = query.trim().toLowerCase();
+    if (searchQuery.isEmpty) return source;
+
+    return source.where((business) {
+      return business.name.toLowerCase().contains(searchQuery) ||
+          business.description.toLowerCase().contains(searchQuery) ||
+          business.city.toLowerCase().contains(searchQuery) ||
+          business.features.any((tag) => tag.toLowerCase().contains(searchQuery));
+    }).toList();
   }
 
   Future<void> _openFilters() async {
@@ -134,7 +150,7 @@ class _BusinessListScreenState extends State<BusinessListScreen>
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('النتائج لـ ${widget.category.name}'),
+          title: Text('النتائج لـ ${widget.category.displayName}'),
           centerTitle: true,
         ),
         body: SafeArea(
@@ -148,7 +164,7 @@ class _BusinessListScreenState extends State<BusinessListScreen>
                   onSubmit: _handleSubmit,
                   onChanged: _handleSearch,
                   onFilterTap: () => _openSearchResults(_searchController.text),
-                  hintText: 'ابحث داخل ${widget.category.name}',
+                  hintText: 'ابحث داخل ${widget.category.displayName}',
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -187,7 +203,7 @@ class _BusinessListScreenState extends State<BusinessListScreen>
                 ],
                 const SizedBox(height: 12),
                 Text(
-                  'استكشف خيارات ${widget.category.name}',
+                  'استكشف خيارات ${widget.category.displayName}',
                   textAlign: TextAlign.right,
                   style: theme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
@@ -195,6 +211,11 @@ class _BusinessListScreenState extends State<BusinessListScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (_errorMessage != null)
+                  _ErrorBanner(
+                    message: _errorMessage!,
+                    onRetry: _loadBusinesses,
+                  ),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 250),
@@ -209,11 +230,15 @@ class _BusinessListScreenState extends State<BusinessListScreen>
                                   final business = _visibleBusinesses[index];
                                   return BusinessCard(
                                     business: business,
+                                    categoryLabel: widget.category.displayName,
                                     onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => BusinessDetailScreen(business: business),
+                                          builder: (_) => BusinessDetailScreen(
+                                            businessId: business.id,
+                                            initialBusiness: business,
+                                          ),
                                         ),
                                       );
                                     },
@@ -245,6 +270,46 @@ class _BusinessListScreenState extends State<BusinessListScreen>
       itemCount: 5,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) => _ShimmerCard(animation: _shimmerController),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              textAlign: TextAlign.right,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkText,
+                  ),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            child: const Text('إعادة المحاولة'),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/category.dart';
-import '../services/supabase_service.dart';
+import '../repositories/category_repository.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text.dart';
 import '../widgets/category_card.dart';
@@ -11,10 +11,9 @@ import 'settings_screen.dart';
 import 'search_results_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.service});
+  const HomeScreen({super.key});
 
   static const String routeName = '/';
-  final SupabaseService service;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -23,11 +22,12 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late Future<List<Category>> _categoriesFuture;
   final TextEditingController _searchController = TextEditingController();
+  final CategoryRepository _categoryRepository = CategoryRepository();
 
   @override
   void initState() {
     super.initState();
-    _categoriesFuture = widget.service.getCategories();
+    _categoriesFuture = _categoryRepository.fetchAll();
   }
 
   @override
@@ -143,24 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-          ),
-          child: Row(
-            children: const [
-              Icon(Icons.shield_outlined, size: 16, color: AppColors.primary),
-              SizedBox(width: 6),
-              Text(
-                AppText.mockBadge,
-                style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -171,18 +153,15 @@ class _HomeScreenState extends State<HomeScreen> {
       future: _categoriesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: CircularProgressIndicator()),
-          );
+          return const _CategoryShimmerGrid();
         }
         if (snapshot.hasError) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text('تعذر تحميل التصنيفات', textAlign: TextAlign.center),
-          );
+          return const _ErrorBanner(message: 'تعذر تحميل التصنيفات من الخادم');
         }
         final categories = snapshot.data ?? [];
+        if (categories.isEmpty) {
+          return const _ErrorBanner(message: 'لا توجد تصنيفات متاحة حالياً');
+        }
         return LayoutBuilder(
           builder: (context, constraints) {
             final crossAxisCount = (constraints.maxWidth / 180).floor().clamp(2, 4);
@@ -216,6 +195,92 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class _CategoryShimmerGrid extends StatelessWidget {
+  const _CategoryShimmerGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
+      itemCount: 6,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, index) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE6E6E6)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEDEDED),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              height: 14,
+              width: 90,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDEDED),
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              textAlign: TextAlign.right,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.darkText,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

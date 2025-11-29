@@ -15,7 +15,7 @@ List<Business> applyFilters(List<Business> all, BusinessFilters filters) {
         .where(
           (business) {
             final businessTags =
-                business.tags.map((tag) => tag.toLowerCase()).toList();
+                business.features.map((tag) => tag.toLowerCase()).toList();
             return filters.tags.every((selectedTag) {
               final lowerSelected = selectedTag.toLowerCase();
               return businessTags.any((tag) => tag.contains(lowerSelected));
@@ -31,12 +31,12 @@ List<Business> applyFilters(List<Business> all, BusinessFilters filters) {
       break;
     case 'popular':
       filtered.sort((a, b) {
-        final ratingCountA = a.ratingCount;
-        final ratingCountB = b.ratingCount;
-        if (ratingCountA == ratingCountB) {
+        final scoreA = a.popularScore ?? 0;
+        final scoreB = b.popularScore ?? 0;
+        if (scoreA == scoreB) {
           return b.rating.compareTo(a.rating);
         }
-        return ratingCountB.compareTo(ratingCountA);
+        return scoreB.compareTo(scoreA);
       });
       break;
     case 'price':

@@ -1,37 +1,73 @@
 import 'package:flutter/material.dart';
 
+@immutable
 class Category {
   final String id;
-  final String name;
-  final IconData icon;
-  final Color color;
+  final String nameAr;
+  final String nameEn;
+  final String? icon;
 
   const Category({
     required this.id,
-    required this.name,
-    required this.icon,
-    this.color = const Color(0xFF00897B),
+    required this.nameAr,
+    required this.nameEn,
+    this.icon,
   });
 
   factory Category.fromMap(Map<String, dynamic> map) {
     return Category(
       id: map['id']?.toString() ?? '',
-      name: map['name'] ?? '',
-      icon: IconData(
-        map['icon'] is int ? map['icon'] : Icons.category.codePoint,
-        fontFamily: map['iconFont'] ?? 'MaterialIcons',
-      ),
-      color: map['color'] is int ? Color(map['color']) : const Color(0xFF00897B),
+      nameAr: map['name_ar']?.toString() ?? '',
+      nameEn: map['name_en']?.toString() ?? '',
+      icon: map['icon']?.toString(),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'name': name,
-      'icon': icon.codePoint,
-      'iconFont': icon.fontFamily,
-      'color': color.value,
+      'name_ar': nameAr,
+      'name_en': nameEn,
+      'icon': icon,
     };
+  }
+
+  String get displayName => nameAr.isNotEmpty ? nameAr : nameEn;
+
+  IconData get iconData => _iconFromName(icon);
+
+  Color get color => const Color(0xFF00897B);
+
+  Category copyWith({
+    String? id,
+    String? nameAr,
+    String? nameEn,
+    String? icon,
+  }) {
+    return Category(
+      id: id ?? this.id,
+      nameAr: nameAr ?? this.nameAr,
+      nameEn: nameEn ?? this.nameEn,
+      icon: icon ?? this.icon,
+    );
+  }
+
+  static IconData _iconFromName(String? iconName) {
+    switch (iconName) {
+      case 'restaurant':
+        return Icons.restaurant;
+      case 'cafe':
+        return Icons.local_cafe;
+      case 'clinic':
+        return Icons.local_hospital;
+      case 'store':
+        return Icons.store;
+      case 'service':
+        return Icons.build;
+      case 'education':
+        return Icons.school;
+      default:
+        return Icons.category;
+    }
   }
 }
