@@ -22,8 +22,9 @@ class BusinessCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
     final imageUrl = business.primaryImage;
-    final locationLabel = business.city.isNotEmpty
-        ? business.city
+    final safeCity = business.city ?? '';
+    final locationLabel = safeCity.isNotEmpty
+        ? safeCity
         : (categoryLabel != null && categoryLabel!.isNotEmpty ? categoryLabel! : 'متاح');
 
     return Card(
@@ -72,7 +73,7 @@ class BusinessCard extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              categoryLabel ?? business.city,
+                              categoryLabel ?? business.city ?? '',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.right,
@@ -83,10 +84,10 @@ class BusinessCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          _RatingStars(rating: business.rating),
+                          _RatingStars(rating: business.rating ?? 0.0),
                           const SizedBox(width: 4),
                           Text(
-                            business.rating.toStringAsFixed(1),
+                            business.rating?.toStringAsFixed(1) ?? '0.0',
                             style: theme.bodySmall?.copyWith(
                               color: Colors.black54,
                               fontWeight: FontWeight.w600,
@@ -96,7 +97,7 @@ class BusinessCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        business.description,
+                        business.description ?? '',
                         textAlign: TextAlign.right,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
