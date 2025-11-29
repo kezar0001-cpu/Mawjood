@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -92,6 +93,14 @@ function LoginForm() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link href="/register" className="font-medium text-blue-600 hover:text-blue-700">
+                Register here
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>
