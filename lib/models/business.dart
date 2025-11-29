@@ -4,47 +4,42 @@ import 'package:flutter/foundation.dart';
 class Business {
   final String id;
   final String name;
-  final String categoryId;
-  final String description;
-  final String city;
-  final String address;
-  final String phone;
-  final double rating;
-  final double? latitude;
-  final double? longitude;
-  final List<String> images;
-  final List<String> features;
+  final String? description;
+  final String? address;
+  final String? phone;
+  final String? whatsapp;
+  final String? city;
+  final String? category;
+  final double? rating;
 
-  const Business({
+  // ADD THIS FIELD
+  final int? popularScore;
+
+  Business({
     required this.id,
     required this.name,
-    required this.categoryId,
-    required this.description,
-    required this.city,
-    required this.address,
-    required this.phone,
-    this.rating = 0,
-    this.latitude,
-    this.longitude,
-    this.images = const [],
-    this.features = const [],
+    this.description,
+    this.address,
+    this.phone,
+    this.whatsapp,
+    this.city,
+    this.category,
+    this.rating,
+    this.popularScore, // ADD THIS
   });
 
   factory Business.fromMap(Map<String, dynamic> map) {
     return Business(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
-      categoryId: map['category_id']?.toString() ?? '',
-      description: map['description']?.toString() ?? '',
-      city: map['city']?.toString() ?? '',
-      address: map['address']?.toString() ?? '',
-      phone: map['phone']?.toString() ?? '',
-      rating: (map['rating'] as num?)?.toDouble() ?? 0,
-      latitude: (map['latitude'] as num?)?.toDouble(),
-      longitude: (map['longitude'] as num?)?.toDouble(),
-      images: (map['images'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      features:
-          (map['features'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      id: map['id'],
+      name: map['name'],
+      description: map['description'],
+      address: map['address'],
+      phone: map['phone'],
+      whatsapp: map['whatsapp'],
+      city: map['city'],
+      category: map['category'],
+      rating: map['rating'] != null ? (map['rating'] as num).toDouble() : null,
+      popularScore: map['popular_score'] != null ? (map['popular_score'] as num).toInt() : 0, // ADD THIS
     );
   }
 
@@ -52,18 +47,17 @@ class Business {
     return {
       'id': id,
       'name': name,
-      'category_id': categoryId,
       'description': description,
-      'city': city,
       'address': address,
       'phone': phone,
+      'whatsapp': whatsapp,
+      'city': city,
+      'category': category,
       'rating': rating,
-      'latitude': latitude,
-      'longitude': longitude,
-      'images': images,
-      'features': features,
+      'popular_score': popularScore, // ADD THIS
     };
   }
+}
 
   Business copyWith({
     String? id,
