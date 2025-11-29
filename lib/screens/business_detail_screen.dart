@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../mock/mock_businesses.dart';
 import '../models/business.dart';
+import '../repositories/business_repository.dart';
 import '../utils/app_colors.dart';
 import '../widgets/business_card.dart';
 import '../widgets/mawjood_action_button.dart';
@@ -20,7 +20,15 @@ class BusinessDetailScreen extends StatefulWidget {
 }
 
 class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
+  final BusinessRepository _repository = BusinessRepository();
   bool _isFavorite = false;
+  late Future<List<Business>> _relatedFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _relatedFuture = _loadRelatedBusinesses();
+  }
 
   Future<void> _launch(Uri uri) async {
     if (await canLaunchUrl(uri)) {
@@ -70,14 +78,30 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     );
   }
 
+  Future<List<Business>> _loadRelatedBusinesses() async {
+    try {
+      final results =
+          await _repository.getBusinessesByCategory(widget.business.categoryId);
+      return results
+          .where((b) => b.id != widget.business.id)
+          .map(
+            (b) => b.copyWith(
+              categoryName: widget.business.categoryName.isNotEmpty
+                  ? widget.business.categoryName
+                  : b.categoryName,
+            ),
+          )
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final business = widget.business;
     final theme = Theme.of(context).textTheme;
     final heroImage = business.primaryImage;
-    final related = mockBusinesses
-        .where((b) => b.categoryId == business.categoryId && b.id != business.id)
-        .toList();
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -277,44 +301,58 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         ],
                       ),
                     ),
-                    if (related.isNotEmpty) ...[
-                      const SizedBox(height: 28),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: _SectionTitle(title: 'اقتراحات مشابهة'),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 190,
-                        child: ListView.separated(
-                          padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: related.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final item = related[index];
-                            return SizedBox(
-                              width: 280,
-                              child: BusinessCard(
-                                business: item,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => BusinessDetailScreen(business: item),
+                    FutureBuilder<List<Business>>(
+                      future: _relatedFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const _RelatedShimmer();
+                        }
+                        final related = snapshot.data ?? [];
+                        if (related.isEmpty) return const SizedBox.shrink();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 28),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: _SectionTitle(title: 'اقتراحات مشابهة'),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 190,
+                              child: ListView.separated(
+                                padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: related.length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                                itemBuilder: (context, index) {
+                                  final item = related[index];
+                                  return SizedBox(
+                                    width: 280,
+                                    child: BusinessCard(
+                                      business: item,
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => BusinessDetailScreen(business: item),
+                                          ),
+                                        );
+                                      },
+                                      onCall: item.phone.isNotEmpty
+                                          ? () => _launch(Uri.parse('tel:${item.phone}'))
+                                          : null,
                                     ),
                                   );
                                 },
-                                onCall: item.phone.isNotEmpty
-                                    ? () => _launch(Uri.parse('tel:${item.phone}'))
-                                    : null,
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -322,6 +360,62 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RelatedShimmer extends StatelessWidget {
+  const _RelatedShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 190,
+      child: ListView.separated(
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (_, __) => Container(
+          width: 280,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE6E6E6)),
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 110,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDEDED),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 14,
+                width: 120,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDEDED),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 12,
+                width: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDEDED),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ],
+          ),
+        ),
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemCount: 3,
       ),
     );
   }

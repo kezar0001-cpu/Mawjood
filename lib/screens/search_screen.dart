@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../models/business.dart';
-import '../services/supabase_service.dart';
+import '../repositories/business_repository.dart';
 import '../widgets/business_card.dart';
 import 'business_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, required this.service});
+  const SearchScreen({super.key});
 
   static const String routeName = '/search';
-  final SupabaseService service;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -17,6 +16,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final BusinessRepository _repository = BusinessRepository();
   List<Business> _results = [];
   bool _loading = false;
   String _lastQuery = '';
@@ -54,11 +54,17 @@ class _SearchScreenState extends State<SearchScreen> {
       _loading = true;
       _lastQuery = query;
     });
-    final results = await widget.service.searchBusinesses(query);
-    setState(() {
-      _results = results;
-      _loading = false;
-    });
+    try {
+      final results = await _repository.searchBusinesses(query);
+      setState(() {
+        _results = results;
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   @override

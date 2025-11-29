@@ -1,13 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/business.dart';
 import '../models/filters.dart';
+import '../repositories/business_repository.dart';
 import '../services/filter_service.dart';
+import '../services/supabase_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text.dart';
-import '../utils/search_helper.dart';
 import '../widgets/business_card.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/mawjood_action_button.dart';
@@ -25,10 +27,14 @@ class SearchResultsScreen extends StatefulWidget {
 class _SearchResultsScreenState extends State<SearchResultsScreen> {
   late TextEditingController _controller;
   Timer? _debounce;
+  final BusinessRepository _repository = BusinessRepository();
+  RealtimeChannel? _channel;
   List<Business> _results = [];
   List<Business> _filteredResults = [];
   String _currentQuery = '';
   BusinessFilters _filters = BusinessFilters.defaults();
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -36,12 +42,14 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     _controller = TextEditingController(text: widget.initialQuery);
     _currentQuery = widget.initialQuery;
     _runSearch(widget.initialQuery);
+    _subscribeToRealtime();
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    _channel?.unsubscribe();
     super.dispose();
   }
 
@@ -52,18 +60,55 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     });
   }
 
-  void _runSearch(String value) {
+  Future<void> _runSearch(String value) async {
     final trimmed = value.trim();
     setState(() {
       _currentQuery = value;
-      _results = searchBusinessesLocally(trimmed);
-      _filteredResults = applyFilters(_results, _filters);
+      _errorMessage = null;
     });
+
+    if (trimmed.isEmpty) {
+      setState(() {
+        _results = [];
+        _filteredResults = [];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final results = await _repository.searchBusinesses(trimmed);
+      setState(() {
+        _results = results;
+        _filteredResults = applyFilters(_results, _filters);
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'تعذر تحميل نتائج البحث حالياً';
+      });
+    }
   }
 
   void _onSubmit(String value) {
     _debounce?.cancel();
     _runSearch(value);
+  }
+
+  void _subscribeToRealtime() {
+    _channel = SupabaseService.client
+        .channel('public:businesses')
+        .on(
+          RealtimeListenTypes.postgresChanges,
+          const ChannelFilter(event: '*', schema: 'public', table: 'businesses'),
+          (payload, [ref]) => _runSearch(_currentQuery),
+        )
+        .subscribe();
   }
 
   void _openFilters() async {
@@ -182,11 +227,24 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                 ],
                 const SizedBox(height: 12),
                 Expanded(
-                  child: hasQuery
-                      ? hasResults
-                          ? _buildResultsList()
-                          : _buildEmptyState(textTheme)
-                      : _buildIdleState(textTheme),
+                  child: Column(
+                    children: [
+                      if (_errorMessage != null)
+                        _ErrorBanner(
+                          message: _errorMessage!,
+                          onRetry: () => _runSearch(_currentQuery),
+                        ),
+                      Expanded(
+                        child: hasQuery
+                            ? _isLoading
+                                ? const _SearchShimmerList()
+                                : hasResults
+                                    ? _buildResultsList()
+                                    : _buildEmptyState(textTheme)
+                            : _buildIdleState(textTheme),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -312,6 +370,113 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SearchShimmerList extends StatelessWidget {
+  const _SearchShimmerList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsetsDirectional.fromSTEB(4, 4, 4, 24),
+      itemCount: 5,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) => Card(
+        elevation: 2,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 92,
+                height: 92,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDEDED),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 16,
+                      width: 160,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDEDED),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      height: 14,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDEDED),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      height: 12,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDEDED),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              textAlign: TextAlign.right,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkText,
+                  ),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            child: const Text('إعادة المحاولة'),
+          ),
+        ],
       ),
     );
   }

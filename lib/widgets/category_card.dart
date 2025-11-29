@@ -37,12 +37,12 @@ class CategoryCard extends StatelessWidget {
             children: [
               _CategoryIconBadge(
                 color: category.color,
-                icon: category.icon,
+                icon: category.iconData,
                 background: category.color.withOpacity(0.12),
               ),
               const SizedBox(height: 14),
               Text(
-                category.name,
+                category.displayName,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
