@@ -50,11 +50,21 @@ ThemeData buildTheme() {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MawjoodBootstrap());
+  final initFuture = SupabaseService.initialize();
+
+  try {
+    await initFuture;
+  } catch (e) {
+    debugPrint('Init error: $e');
+  }
+
+  runApp(MawjoodBootstrap(initFuture: initFuture));
 }
 
 class MawjoodBootstrap extends StatefulWidget {
-  const MawjoodBootstrap({super.key});
+  const MawjoodBootstrap({super.key, required this.initFuture});
+
+  final Future<void> initFuture;
 
   @override
   State<MawjoodBootstrap> createState() => _MawjoodBootstrapState();
@@ -66,7 +76,7 @@ class _MawjoodBootstrapState extends State<MawjoodBootstrap> {
   @override
   void initState() {
     super.initState();
-    _initFuture = SupabaseService.initialize();
+    _initFuture = widget.initFuture;
   }
 
   void _retryInitialization() {
