@@ -11,9 +11,12 @@ class Business {
   final String? city;
   final String? category;
   final double? rating;
-
-  // ADD THIS FIELD
   final int? popularScore;
+  final String? categoryId;
+  final double? latitude;
+  final double? longitude;
+  final List<String> images;
+  final List<String> features;
 
   Business({
     required this.id,
@@ -25,7 +28,12 @@ class Business {
     this.city,
     this.category,
     this.rating,
-    this.popularScore, // ADD THIS
+    this.popularScore,
+    this.categoryId,
+    this.latitude,
+    this.longitude,
+    this.images = const [],
+    this.features = const [],
   });
 
   factory Business.fromMap(Map<String, dynamic> map) {
@@ -39,7 +47,12 @@ class Business {
       city: map['city'],
       category: map['category'],
       rating: map['rating'] != null ? (map['rating'] as num).toDouble() : null,
-      popularScore: map['popular_score'] != null ? (map['popular_score'] as num).toInt() : 0, // ADD THIS
+      popularScore: map['popular_score'] != null ? (map['popular_score'] as num).toInt() : 0,
+      categoryId: map['category_id'],
+      latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
+      longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
+      images: map['images'] != null ? List<String>.from(map['images']) : const [],
+      features: map['features'] != null ? List<String>.from(map['features']) : const [],
     );
   }
 
@@ -54,10 +67,14 @@ class Business {
       'city': city,
       'category': category,
       'rating': rating,
-      'popular_score': popularScore, // ADD THIS
+      'popular_score': popularScore,
+      'category_id': categoryId,
+      'latitude': latitude,
+      'longitude': longitude,
+      'images': images,
+      'features': features,
     };
   }
-}
 
   Business copyWith({
     String? id,
@@ -92,12 +109,14 @@ class Business {
   String? get primaryImage => images.isNotEmpty ? images.first : null;
 
   String get displayAddress {
-    if (address.isNotEmpty && city.isNotEmpty) {
-      return '$city • $address';
+    final safeAddress = address ?? '';
+    final safeCity = city ?? '';
+    if (safeAddress.isNotEmpty && safeCity.isNotEmpty) {
+      return '$safeCity • $safeAddress';
     }
-    if (address.isNotEmpty) {
-      return address;
+    if (safeAddress.isNotEmpty) {
+      return safeAddress;
     }
-    return city;
+    return safeCity;
   }
 }

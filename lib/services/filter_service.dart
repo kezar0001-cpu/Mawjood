@@ -6,7 +6,7 @@ List<Business> applyFilters(List<Business> all, BusinessFilters filters) {
 
   if (filters.minRating != null) {
     filtered = filtered
-        .where((business) => business.rating >= filters.minRating!)
+        .where((business) => (business.rating ?? 0.0) >= filters.minRating!)
         .toList();
   }
 
@@ -27,14 +27,14 @@ List<Business> applyFilters(List<Business> all, BusinessFilters filters) {
 
   switch (filters.sortBy) {
     case 'rating':
-      filtered.sort((a, b) => b.rating.compareTo(a.rating));
+      filtered.sort((a, b) => (b.rating ?? 0.0).compareTo(a.rating ?? 0.0));
       break;
     case 'popular':
       filtered.sort((a, b) {
         final scoreA = a.popularScore ?? 0;
         final scoreB = b.popularScore ?? 0;
         if (scoreA == scoreB) {
-          return b.rating.compareTo(a.rating);
+          return (b.rating ?? 0.0).compareTo(a.rating ?? 0.0);
         }
         return scoreB.compareTo(scoreA);
       });
