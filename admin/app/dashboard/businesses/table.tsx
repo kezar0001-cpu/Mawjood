@@ -60,15 +60,9 @@ export default function BusinessesTable({ categories }: Props) {
       )
       .order('name');
 
-    if (cityFilter) {
-      query = query.ilike('city', `%${cityFilter}%`);
-    }
-    if (categoryFilter) {
-      query = query.eq('category_id', categoryFilter);
-    }
-    if (search) {
-      query = query.ilike('name', `%${search}%`);
-    }
+    if (cityFilter) query = query.ilike('city', `%${cityFilter}%`);
+    if (categoryFilter) query = query.eq('category_id', categoryFilter);
+    if (search) query = query.ilike('name', `%${search}%`);
 
     const start = (page - 1) * PAGE_SIZE;
     const end = start + PAGE_SIZE - 1;
@@ -79,8 +73,14 @@ export default function BusinessesTable({ categories }: Props) {
       setError(error.message);
       setData([]);
     } else {
-      // Fix TS mismatch
-      setData((data ?? []) as unknown as BusinessRow[]);
+      setData(
+  (data ?? []).map((item) => ({
+    ...item,
+    categories: Array.isArray(item.categories)
+      ? item.categories[0] || null
+      : item.categories ?? null
+  })) as BusinessRow[]
+);
       setCount(count ?? null);
     }
 
@@ -134,22 +134,60 @@ export default function BusinessesTable({ categories }: Props) {
 
           <TBody>
             {data.map((business) => (
-              <TR
-                key={business.id}
-                className="hover:bg-gray-50"
-              >
-                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.name}</div></TD>
-                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.city || '-'}</div></TD>
-                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.categories?.name_ar || '-'}</div></TD>
-                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.rating ?? '-'}</div></TD>
-                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.phone || '-'}</div></TD>
+              <TR key={business.id} className="hover:bg-gray-50">
+                <TD>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/dashboard/businesses/${business.id}`)}
+                  >
+                    {business.name}
+                  </div>
+                </TD>
+
+                <TD>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/dashboard/businesses/${business.id}`)}
+                  >
+                    {business.city || '-'}
+                  </div>
+                </TD>
+
+                <TD>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/dashboard/businesses/${business.id}`)}
+                  >
+                    {business.categories?.name_ar || '-'}
+                  </div>
+                </TD>
+
+                <TD>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/dashboard/businesses/${business.id}`)}
+                  >
+                    {business.rating ?? '-'}
+                  </div>
+                </TD>
+
+                <TD>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/dashboard/businesses/${business.id}`)}
+                  >
+                    {business.phone || '-'}
+                  </div>
+                </TD>
               </TR>
             ))}
 
             {data.length === 0 && (
-              <TR>
-                <td colSpan={5} className="text-center py-4">No businesses found.</td>
-              </TR>
+              <tr>
+                <td colSpan={5} className="text-center py-4">
+                  No businesses found.
+                </td>
+              </tr>
             )}
           </TBody>
         </Table>
