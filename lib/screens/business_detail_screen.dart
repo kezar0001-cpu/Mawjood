@@ -89,6 +89,30 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     _launch(Uri.parse('tel:$phone'));
   }
 
+  void _openWhatsApp() {
+    final business = _business;
+    if (business == null) return;
+
+    final whatsappNumber = business.whatsapp ?? '';
+    if (whatsappNumber.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('رقم واتساب غير متوفر')),
+      );
+      return;
+    }
+
+    // Remove any spaces, dashes, or special characters from the number
+    final cleanNumber = whatsappNumber.replaceAll(RegExp(r'[^\d+]'), '');
+
+    // Pre-filled message in Arabic
+    final message = Uri.encodeComponent('مرحباً، أود الاستفسار عن ${business.name}');
+
+    // Use wa.me URL scheme
+    final whatsappUrl = Uri.parse('https://wa.me/$cleanNumber?text=$message');
+
+    _launch(whatsappUrl);
+  }
+
   Future<void> _shareBusiness() async {
     final business = _business;
     if (business == null) return;
@@ -206,11 +230,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                           child: MawjoodActionButton(
                                             icon: Icons.chat_rounded,
                                             label: 'واتساب',
-                                            onTap: () {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(content: Text('واتساب غير متوفر حالياً')),
-                                              );
-                                            },
+                                            onTap: _openWhatsApp,
                                             backgroundColor: AppColors.primaryLight.withOpacity(0.16),
                                             foregroundColor: AppColors.darkText,
                                           ),

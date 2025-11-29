@@ -10,7 +10,6 @@ import '../utils/app_colors.dart';
 import '../utils/app_text.dart';
 import '../widgets/business_card.dart';
 import '../widgets/filter_bottom_sheet.dart';
-import '../widgets/mawjood_action_button.dart';
 import 'business_detail_screen.dart';
 
 class SearchResultsScreen extends StatefulWidget {
@@ -95,6 +94,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     _runSearch(value);
   }
 
+  Future<void> _handleRefresh() async {
+    await _runSearch(_currentQuery);
+  }
+
   void _openFilters() async {
     final result = await showModalBottomSheet<BusinessFilters>(
       context: context,
@@ -175,40 +178,57 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                     ),
                   ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: MawjoodActionButton(
-                        icon: Icons.tune_rounded,
-                        label: 'فلترة',
-                        onTap: _openFilters,
-                        backgroundColor: AppColors.primaryLight.withOpacity(0.12),
+                GestureDetector(
+                  onTap: _openFilters,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _filters.hasActiveFilters
+                            ? AppColors.primary.withOpacity(0.3)
+                            : Colors.transparent,
+                        width: 1.5,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: MawjoodActionButton(
-                        icon: Icons.sort_rounded,
-                        label: 'ترتيب',
-                        onTap: _openFilters,
-                        backgroundColor: AppColors.primaryLight.withOpacity(0.12),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_filters.hasActiveFilters) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      '${_filters.activeCount} عناصر مفعلة',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.tune_rounded,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'فلترة وترتيب',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.darkText,
+                          ),
+                        ),
+                        if (_filters.hasActiveFilters) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${_filters.activeCount}',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                ],
+                ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: Column(
@@ -263,28 +283,33 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Widget _buildResultsList() {
-    return ListView.separated(
-      padding: const EdgeInsetsDirectional.fromSTEB(4, 4, 4, 24),
-      itemCount: _filteredResults.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final business = _filteredResults[index];
-        return BusinessCard(
-          business: business,
-          categoryLabel: business.city,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BusinessDetailScreen(
-                  businessId: business.id,
-                  initialBusiness: business,
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      color: AppColors.primary,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsetsDirectional.fromSTEB(4, 4, 4, 24),
+        itemCount: _filteredResults.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final business = _filteredResults[index];
+          return BusinessCard(
+            business: business,
+            categoryLabel: business.city,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BusinessDetailScreen(
+                    businessId: business.id,
+                    initialBusiness: business,
+                  ),
                 ),
-              ),
-            );
-          },
-        );
-      },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 

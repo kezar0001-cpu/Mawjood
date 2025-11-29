@@ -36,6 +36,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _categoriesFuture = _categoryRepository.fetchAll();
+    });
+    await _categoriesFuture;
+  }
+
   void _openSearch(String query) {
     Navigator.push(
       context,
@@ -50,36 +57,26 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: _buildAppBar(),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Primary search entry point with soft shadow and RTL-friendly hint.
-              _buildSearchBar(),
-              const SizedBox(height: 16),
-              // Section title row with mock-mode badge for transparency.
-              _buildSectionHeader(),
-              const SizedBox(height: 16),
-              // Premium grid of categories with refined spacing.
-              _buildCategoryGrid(),
-            ],
+        child: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Primary search entry point with soft shadow and RTL-friendly hint.
+                _buildSearchBar(),
+                const SizedBox(height: 16),
+                // Section title row with mock-mode badge for transparency.
+                _buildSectionHeader(),
+                const SizedBox(height: 16),
+                // Premium grid of categories with refined spacing.
+                _buildCategoryGrid(),
+              ],
+            ),
           ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: Directionality(
-        textDirection: TextDirection.rtl,
-        child: FloatingActionButton.extended(
-          elevation: 6,
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          icon: const Icon(Icons.search_rounded),
-          label: const Text(
-            AppText.quickSearch,
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          onPressed: () => _openSearch(_searchController.text),
         ),
       ),
     );
