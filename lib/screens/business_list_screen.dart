@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/business.dart';
@@ -40,6 +41,7 @@ class _BusinessListScreenState extends State<BusinessListScreen>
   BusinessFilters _filters = BusinessFilters.defaults();
   bool _isLoading = true;
   String? _errorMessage;
+  Position? _userLocation;
 
   @override
   void initState() {
@@ -48,6 +50,18 @@ class _BusinessListScreenState extends State<BusinessListScreen>
         AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
           ..repeat();
     _loadBusinesses();
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    final location = await LocationService.getCurrentLocation();
+    setState(() {
+      _userLocation = location;
+    });
+    // Refresh businesses if sorting by nearest
+    if (_filters.sortBy == 'nearest') {
+      _refreshVisibleBusinesses();
+    }
   }
 
   @override
@@ -103,7 +117,11 @@ class _BusinessListScreenState extends State<BusinessListScreen>
   }
 
   void _refreshVisibleBusinesses({String? query}) {
-    final filtered = applyFilters(_allBusinesses, _filters);
+    final filtered = applyFilters(
+      _allBusinesses,
+      _filters,
+      userLocation: _userLocation,
+    );
     final visible = _applySearchQuery(filtered, query ?? _searchController.text);
 
     setState(() {

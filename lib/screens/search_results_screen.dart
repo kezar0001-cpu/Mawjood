@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../models/business.dart';
 import '../models/filters.dart';
@@ -31,6 +32,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   BusinessFilters _filters = BusinessFilters.defaults();
   bool _isLoading = false;
   String? _errorMessage;
+  Position? _userLocation;
 
   @override
   void initState() {
@@ -38,6 +40,20 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     _controller = TextEditingController(text: widget.initialQuery);
     _currentQuery = widget.initialQuery;
     _runSearch(widget.initialQuery);
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    final location = await LocationService.getCurrentLocation();
+    setState(() {
+      _userLocation = location;
+    });
+    // Refresh results if sorting by nearest
+    if (_filters.sortBy == 'nearest' && _results.isNotEmpty) {
+      setState(() {
+        _filteredResults = applyFilters(_results, _filters, userLocation: _userLocation);
+      });
+    }
   }
 
   @override
@@ -78,7 +94,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       final results = await _repository.searchBusinesses(trimmed);
       setState(() {
         _results = results;
-        _filteredResults = applyFilters(_results, _filters);
+        _filteredResults = applyFilters(_results, _filters, userLocation: _userLocation);
         _isLoading = false;
       });
     } catch (_) {
@@ -116,7 +132,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     if (result != null) {
       setState(() {
         _filters = result;
-        _filteredResults = applyFilters(_results, _filters);
+        _filteredResults = applyFilters(_results, _filters, userLocation: _userLocation);
       });
     }
   }

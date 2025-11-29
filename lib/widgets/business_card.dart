@@ -52,16 +52,30 @@ class BusinessCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(
-                              business.name,
-                              textAlign: TextAlign.right,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.titleMedium?.copyWith(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.darkText,
-                              ),
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    business.name,
+                                    textAlign: TextAlign.right,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.titleMedium?.copyWith(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.darkText,
+                                    ),
+                                  ),
+                                ),
+                                if (business.verified) ...[
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.verified,
+                                    size: 18,
+                                    color: Colors.blue,
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -94,6 +108,16 @@ class BusinessCard extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
+                          if (business.reviewCount > 0) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '(${business.reviewCount})',
+                              style: theme.bodySmall?.copyWith(
+                                color: Colors.black54,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -118,6 +142,32 @@ class BusinessCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
+                          if (business.distanceKm != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.navigation, size: 12, color: AppColors.primary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    business.distanceKm! < 1
+                                        ? '${(business.distanceKm! * 1000).toStringAsFixed(0)} م'
+                                        : '${business.distanceKm!.toStringAsFixed(1)} كم',
+                                    style: theme.labelSmall?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(

@@ -1,12 +1,16 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/business.dart';
+import '../models/business_claim.dart';
 import '../repositories/business_repository.dart';
+import '../services/supabase_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/business_card.dart';
 import '../widgets/mawjood_action_button.dart';
+import 'reviews_screen.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
   const BusinessDetailScreen({
@@ -131,6 +135,177 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     );
   }
 
+  void _openReviews() {
+    final business = _business;
+    if (business == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReviewsScreen(business: business),
+      ),
+    ).then((_) => _loadBusiness()); // Refresh business data when returning
+  }
+
+  Future<void> _claimBusiness() async {
+    final business = _business;
+    if (business == null) return;
+
+    // Check if user already has a claim
+    final existingClaim = await SupabaseService.getBusinessClaimForUser(business.id);
+
+    if (existingClaim != null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('لديك طلب مطالبة سابق بحالة: ${existingClaim.status.displayName}'),
+        ),
+      );
+      return;
+    }
+
+    // Show claim dialog
+    if (!mounted) return;
+    _showClaimDialog();
+  }
+
+  void _showClaimDialog() {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('المطالبة بملكية المحل'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'سيتم مراجعة طلبك من قبل الإدارة. يرجى تقديم معلومات صحيحة.',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'الاسم الكامل *',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'الرجاء إدخال الاسم';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'البريد الإلكتروني *',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'الرجاء إدخال البريد الإلكتروني';
+                      }
+                      if (!value.contains('@')) {
+                        return 'البريد الإلكتروني غير صحيح';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم الهاتف (اختياري)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(context);
+                  final claim = await SupabaseService.submitBusinessClaim(
+                    businessId: _business!.id,
+                    userName: nameController.text.trim(),
+                    userEmail: emailController.text.trim(),
+                    userPhone: phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
+                  );
+
+                  if (!mounted) return;
+                  if (claim != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('تم تقديم طلب المطالبة بنجاح. سيتم مراجعته قريباً.'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('فشل في تقديم الطلب. الرجاء المحاولة مرة أخرى.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('إرسال'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openMaps() {
+    final business = _business;
+    if (business == null) return;
+
+    final lat = business.latitude;
+    final lng = business.longitude;
+
+    if (lat == null || lng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الموقع الجغرافي غير متوفر')),
+      );
+      return;
+    }
+
+    // Use different URLs for iOS and Android
+    final Uri mapsUrl;
+    if (Platform.isIOS) {
+      // Apple Maps URL
+      mapsUrl = Uri.parse('https://maps.apple.com/?q=$lat,$lng');
+    } else {
+      // Google Maps geo: URI for Android
+      mapsUrl = Uri.parse('geo:$lat,$lng?q=$lat,$lng');
+    }
+
+    _launch(mapsUrl);
+  }
+
   @override
   Widget build(BuildContext context) {
     final business = _business;
@@ -169,13 +344,27 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      business.name,
-                                      textAlign: TextAlign.right,
-                                      style: theme.headlineSmall?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.darkText,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            business.name,
+                                            textAlign: TextAlign.right,
+                                            style: theme.headlineSmall?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.darkText,
+                                            ),
+                                          ),
+                                        ),
+                                        if (business.verified) ...[
+                                          const SizedBox(width: 8),
+                                          const Icon(
+                                            Icons.verified,
+                                            size: 24,
+                                            color: Colors.blue,
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                     const SizedBox(height: 8),
                                     Row(
@@ -204,6 +393,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                             color: AppColors.darkText,
                                           ),
                                         ),
+                                        if (business.reviewCount > 0) ...[
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '(${business.reviewCount} تقييم)',
+                                            style: theme.bodyMedium?.copyWith(
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                        ],
                                       ],
                                     ),
                                     const SizedBox(height: 10),
@@ -248,6 +446,32 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                         ),
                                       ],
                                     ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: MawjoodActionButton(
+                                            icon: Icons.rate_review,
+                                            label: 'التقييمات',
+                                            onTap: _openReviews,
+                                            backgroundColor: Colors.purple.withOpacity(0.1),
+                                            foregroundColor: Colors.purple,
+                                          ),
+                                        ),
+                                        if (!business.verified) ...[
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: MawjoodActionButton(
+                                              icon: Icons.verified_user,
+                                              label: 'مطالبة',
+                                              onTap: _claimBusiness,
+                                              backgroundColor: Colors.orange.withOpacity(0.1),
+                                              foregroundColor: Colors.orange,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ),
@@ -269,7 +493,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     const SizedBox(height: 10),
                                     _MapPreview(
                                       address: business.displayAddress,
-                                      onTap: null,
+                                      latitude: business.latitude,
+                                      longitude: business.longitude,
+                                      businessName: business.name,
+                                      onTap: _openMaps,
                                     ),
                                     if (business.displayAddress.isNotEmpty) ...[
                                       const SizedBox(height: 10),
@@ -490,39 +717,92 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _MapPreview extends StatelessWidget {
-  const _MapPreview({required this.address, required this.onTap});
+  const _MapPreview({
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+    required this.businessName,
+    required this.onTap,
+  });
 
   final String address;
+  final double? latitude;
+  final double? longitude;
+  final String businessName;
   final VoidCallback? onTap;
+
+  // You can add your Google Static Maps API key here
+  String? get _staticMapUrl {
+    if (latitude == null || longitude == null) return null;
+
+    // Google Static Maps API URL
+    // Note: Replace YOUR_API_KEY with actual Google Static Maps API key
+    // For now, we'll return null to show the placeholder
+    // const apiKey = 'YOUR_API_KEY';
+    // return 'https://maps.googleapis.com/maps/api/staticmap?center=$latitude,$longitude&zoom=15&size=400x200&markers=color:red%7C$latitude,$longitude&key=$apiKey';
+
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final staticMapUrl = _staticMapUrl;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        height: 120,
+        height: 140,
         decoration: BoxDecoration(
           color: AppColors.neutral,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFE6E6E6)),
+          image: staticMapUrl != null
+              ? DecorationImage(
+                  image: NetworkImage(staticMapUrl),
+                  fit: BoxFit.cover,
+                )
+              : null,
         ),
         alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.place_rounded, color: AppColors.primary, size: 28),
-            const SizedBox(height: 6),
-            Text(
-              address.isNotEmpty ? address : 'العنوان غير متوفر',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.darkText,
+        child: staticMapUrl == null
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.place_rounded, color: AppColors.primary, size: 32),
+                  const SizedBox(height: 8),
+                  Text(
+                    address.isNotEmpty ? address : 'العنوان غير متوفر',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.darkText,
+                        ),
                   ),
-            ),
-          ],
-        ),
+                  if (latitude != null && longitude != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.navigation, color: Colors.white, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            'افتح في الخريطة',
+                            style: TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              )
+            : null,
       ),
     );
   }
