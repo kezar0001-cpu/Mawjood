@@ -1,6 +1,8 @@
 import { Card } from '@/components/ui/Card';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   const supabase = createSupabaseServerClient();
 

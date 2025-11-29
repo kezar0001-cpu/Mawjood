@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
 import { Table, THead, TR, TH, TBody, TD } from '@/components/ui/Table';
@@ -17,7 +17,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.from('categories').select('*').order('name_ar', { ascending: true }).limit(pageSize);
     if (error) {
@@ -26,11 +26,11 @@ export default function CategoriesPage() {
       setCategories(data || []);
     }
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     void loadCategories();
-  }, []);
+  }, [loadCategories]);
 
   const handleDelete = async (id: string) => {
     const confirmed = confirm('Delete this category?');

@@ -1,6 +1,8 @@
 import { BusinessForm } from '@/components/businesses/BusinessForm';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
+export const dynamic = 'force-dynamic';
+
 export default async function NewBusinessPage() {
   const supabase = createSupabaseServerClient();
   const { data: categories } = await supabase.from('categories').select('*').order('name_ar');
