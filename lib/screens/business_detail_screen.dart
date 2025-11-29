@@ -274,13 +274,13 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             ),
                             const SizedBox(height: 20),
                           ],
-                          if (business.tags.isNotEmpty) ...[
+                          if (business.features.isNotEmpty) ...[
                             _SectionTitle(title: 'مميزات'),
                             const SizedBox(height: 10),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: business.tags
+                              children: business.features
                                   .map(
                                     (tag) => Chip(
                                       backgroundColor: AppColors.neutral,

@@ -101,6 +101,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   void _subscribeToRealtime() {
+    if (SupabaseService.useMock) return;
+
     _channel = SupabaseService.client
         .channel('public:businesses')
         .on(

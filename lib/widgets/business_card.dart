@@ -20,6 +20,11 @@ class BusinessCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
     final imageUrl = business.primaryImage;
+    final locationLabel = business.city.isNotEmpty
+        ? business.city
+        : (business.district.isNotEmpty
+            ? business.district
+            : (business.categoryName.isNotEmpty ? business.categoryName : 'متاح')); 
 
     return Card(
       elevation: 3,
@@ -118,7 +123,7 @@ class BusinessCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              'يبعد ٢ كم',
+                              locationLabel,
                               style: theme.labelMedium?.copyWith(
                                 color: AppColors.darkText,
                                 fontWeight: FontWeight.w600,

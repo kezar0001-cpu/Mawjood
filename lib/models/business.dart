@@ -5,6 +5,7 @@ class Business {
   final String categoryName;
   final String description;
   final List<String> images;
+  final List<String> features;
   final double rating;
   final int ratingCount;
   final String phone;
@@ -14,7 +15,6 @@ class Business {
   final double? latitude;
   final double? longitude;
   final String? imageUrl;
-  final List<String> tags;
   final String? mapsUrl;
   final String city;
   final String district;
@@ -28,6 +28,7 @@ class Business {
     this.categoryName = '',
     required this.description,
     this.images = const [],
+    this.features = const [],
     this.rating = 0,
     this.ratingCount = 0,
     required this.phone,
@@ -37,7 +38,6 @@ class Business {
     this.latitude,
     this.longitude,
     this.imageUrl,
-    this.tags = const [],
     this.mapsUrl,
     this.city = '',
     this.district = '',
@@ -53,6 +53,8 @@ class Business {
       categoryName: json['category_name']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       images: (json['images'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      features:
+          (json['features'] as List? ?? json['tags'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       ratingCount: (json['rating_count'] as num?)?.toInt() ?? 0,
       phone: json['phone']?.toString() ?? '',
@@ -64,7 +66,6 @@ class Business {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       imageUrl: json['image_url']?.toString() ?? json['imageUrl']?.toString(),
-      tags: (json['tags'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       mapsUrl: json['maps_url']?.toString(),
       city: json['city']?.toString() ?? '',
       district: json['district']?.toString() ?? '',
@@ -81,6 +82,7 @@ class Business {
       'category_name': categoryName,
       'description': description,
       'images': images,
+      'features': features,
       'rating': rating,
       'rating_count': ratingCount,
       'phone': phone,
@@ -90,7 +92,6 @@ class Business {
       'latitude': latitude,
       'longitude': longitude,
       'image_url': imageUrl,
-      'tags': tags,
       'maps_url': mapsUrl,
       'city': city,
       'district': district,
@@ -106,6 +107,7 @@ class Business {
     String? categoryName,
     String? description,
     List<String>? images,
+    List<String>? features,
     double? rating,
     int? ratingCount,
     String? phone,
@@ -115,7 +117,6 @@ class Business {
     double? latitude,
     double? longitude,
     String? imageUrl,
-    List<String>? tags,
     String? mapsUrl,
     String? city,
     String? district,
@@ -129,6 +130,7 @@ class Business {
       categoryName: categoryName ?? this.categoryName,
       description: description ?? this.description,
       images: images ?? this.images,
+      features: features ?? this.features,
       rating: rating ?? this.rating,
       ratingCount: ratingCount ?? this.ratingCount,
       phone: phone ?? this.phone,
@@ -138,7 +140,6 @@ class Business {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       imageUrl: imageUrl ?? this.imageUrl,
-      tags: tags ?? this.tags,
       mapsUrl: mapsUrl ?? this.mapsUrl,
       city: city ?? this.city,
       district: district ?? this.district,
@@ -146,6 +147,8 @@ class Business {
       popularScore: popularScore ?? this.popularScore,
     );
   }
+
+  List<String> get tags => features;
 
   String? get primaryImage {
     if (imageUrl != null && imageUrl!.isNotEmpty) return imageUrl;
@@ -156,7 +159,9 @@ class Business {
   String get displayAddress {
     if (address.isNotEmpty) return address;
     if (location != null && location!.isNotEmpty) return location!;
-    if (city.isNotEmpty || district.isNotEmpty) return '$city • $district'.trim();
+    if (city.isNotEmpty && district.isNotEmpty) return '$city • $district';
+    if (city.isNotEmpty) return city;
+    if (district.isNotEmpty) return district;
     return '';
   }
 
