@@ -15,7 +15,7 @@ List<Business> applyFilters(List<Business> all, BusinessFilters filters) {
         .where(
           (business) {
             final businessTags =
-                business.tags.map((tag) => tag.toLowerCase()).toList();
+                business.features.map((tag) => tag.toLowerCase()).toList();
             return filters.tags.every((selectedTag) {
               final lowerSelected = selectedTag.toLowerCase();
               return businessTags.any((tag) => tag.contains(lowerSelected));

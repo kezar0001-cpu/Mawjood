@@ -95,6 +95,8 @@ class _BusinessListScreenState extends State<BusinessListScreen>
   }
 
   void _subscribeToRealtime() {
+    if (SupabaseService.useMock) return;
+
     _channel = SupabaseService.client
         .channel('public:businesses')
         .on(
@@ -141,7 +143,8 @@ class _BusinessListScreenState extends State<BusinessListScreen>
       return business.name.toLowerCase().contains(searchQuery) ||
           business.description.toLowerCase().contains(searchQuery) ||
           business.categoryName.toLowerCase().contains(searchQuery) ||
-          business.tags.any((tag) => tag.toLowerCase().contains(searchQuery));
+          business.features
+              .any((tag) => tag.toLowerCase().contains(searchQuery));
     }).toList();
   }
 
