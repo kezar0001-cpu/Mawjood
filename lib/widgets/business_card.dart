@@ -23,9 +23,10 @@ class BusinessCard extends StatelessWidget {
     final theme = Theme.of(context).textTheme;
     final imageUrl = business.primaryImage;
     final safeCity = business.city ?? '';
+    // FIXED: Removed dangerous null-check operator (!) for Web compatibility
     final locationLabel = safeCity.isNotEmpty
         ? safeCity
-        : (categoryLabel?.isNotEmpty == true ? categoryLabel! : 'متاح');
+        : (categoryLabel?.isNotEmpty == true ? categoryLabel ?? 'متاح' : 'متاح');
 
     return Card(
       elevation: 3,
