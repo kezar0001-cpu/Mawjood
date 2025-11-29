@@ -16,6 +16,7 @@ import 'models/category.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_text.dart';
 
+// FIXED: Added error handling for GoogleFonts to prevent Web crashes
 ThemeData buildTheme() {
   final base = ThemeData(
     colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
@@ -41,12 +42,26 @@ ThemeData buildTheme() {
     ),
   );
 
-  return base.copyWith(
-    textTheme: GoogleFonts.cairoTextTheme(base.textTheme).apply(
-      bodyColor: AppColors.darkText,
-      displayColor: AppColors.darkText,
-    ),
-  );
+  // Safe Google Fonts loading with fallback for Web
+  try {
+    final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
+    return base.copyWith(
+      textTheme: googleFontsTheme.apply(
+        bodyColor: AppColors.darkText,
+        displayColor: AppColors.darkText,
+      ),
+    );
+  } catch (e) {
+    debugPrint('⚠️ [THEME] GoogleFonts failed to load, using fallback: $e');
+    // Return base theme with manual Arabic font if GoogleFonts fails
+    return base.copyWith(
+      textTheme: base.textTheme.apply(
+        bodyColor: AppColors.darkText,
+        displayColor: AppColors.darkText,
+        fontFamily: 'Arial', // Fallback font for Arabic
+      ),
+    );
+  }
 }
 
 Future<void> main() async {
@@ -233,11 +248,12 @@ class _MawjoodAppState extends State<MawjoodApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       initialRoute: _hasSeenOnboarding ? HomeScreen.routeName : OnboardingScreen.routeName,
+      // FIXED: Use const constructors for better performance and Web stability
       routes: {
-        OnboardingScreen.routeName: (_) => OnboardingScreen(),
-        HomeScreen.routeName: (_) => HomeScreen(),
-        SearchScreen.routeName: (_) => SearchScreen(),
-        SettingsScreen.routeName: (_) => SettingsScreen(),
+        OnboardingScreen.routeName: (_) => const OnboardingScreen(),
+        HomeScreen.routeName: (_) => const HomeScreen(),
+        SearchScreen.routeName: (_) => const SearchScreen(),
+        SettingsScreen.routeName: (_) => const SettingsScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == BusinessListScreen.routeName) {
