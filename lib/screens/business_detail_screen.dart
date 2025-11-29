@@ -58,7 +58,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
     setState(() {
       _business = resolved;
-      _relatedFuture = _loadRelatedBusinesses(resolved.categoryId);
+      _relatedFuture = _loadRelatedBusinesses(resolved.categoryId ?? '');
       _isLoading = false;
     });
   }
@@ -95,9 +95,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
     final shareText = [
       business.name,
-      if (business.description.isNotEmpty) business.description,
-      if (business.displayAddress.isNotEmpty) business.displayAddress,
-      if (business.phone.isNotEmpty) business.phone,
+      if ((business.description ?? '').isNotEmpty) business.description ?? '',
+      if ((business.displayAddress ?? '').isNotEmpty) business.displayAddress ?? '',
+      if ((business.phone ?? '').isNotEmpty) business.phone ?? '',
     ].join('\n');
 
     await Clipboard.setData(ClipboardData(text: shareText));
@@ -162,7 +162,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Text(
-                                            business.city.isNotEmpty ? business.city : 'غير محدد',
+                                            (business.city ?? '').isNotEmpty ? (business.city ?? '') : 'غير محدد',
                                             style: theme.labelLarge?.copyWith(
                                               color: AppColors.primary,
                                               fontWeight: FontWeight.w700,
@@ -173,7 +173,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                         const Icon(Icons.star_rounded, color: AppColors.accentGold, size: 22),
                                         const SizedBox(width: 4),
                                         Text(
-                                          business.rating.toStringAsFixed(1),
+                                          (business.rating ?? 0.0).toStringAsFixed(1),
                                           style: theme.titleMedium?.copyWith(
                                             fontWeight: FontWeight.w700,
                                             color: AppColors.darkText,
@@ -183,7 +183,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      business.description,
+                                      business.description ?? '',
                                       maxLines: 3,
                                       overflow: TextOverflow.ellipsis,
                                       textAlign: TextAlign.right,
@@ -239,7 +239,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     _SectionTitle(title: 'نبذة عن المحل'),
                                     const SizedBox(height: 8),
                                     Text(
-                                      business.description,
+                                      business.description ?? '',
                                       textAlign: TextAlign.right,
                                       style: theme.bodyMedium?.copyWith(color: Colors.black87),
                                     ),
@@ -333,8 +333,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                                     ),
                                                   );
                                                 },
-                                                onCall: item.phone.isNotEmpty
-                                                    ? () => _launch(Uri.parse('tel:${item.phone}'))
+                                                onCall: (item.phone ?? '').isNotEmpty
+                                                    ? () => _launch(Uri.parse('tel:${item.phone ?? ''}'))
                                                     : null,
                                               ),
                                             );

@@ -115,8 +115,8 @@ class _BusinessListScreenState extends State<BusinessListScreen>
 
     return source.where((business) {
       return business.name.toLowerCase().contains(searchQuery) ||
-          business.description.toLowerCase().contains(searchQuery) ||
-          business.city.toLowerCase().contains(searchQuery) ||
+          (business.description ?? '').toLowerCase().contains(searchQuery) ||
+          (business.city ?? '').toLowerCase().contains(searchQuery) ||
           business.features.any((tag) => tag.toLowerCase().contains(searchQuery));
     }).toList();
   }
@@ -242,9 +242,9 @@ class _BusinessListScreenState extends State<BusinessListScreen>
                                         ),
                                       );
                                     },
-                                    onCall: business.phone.isEmpty
+                                    onCall: (business.phone ?? '').isEmpty
                                         ? null
-                                        : () => _launchCall(business.phone),
+                                        : () => _launchCall(business.phone ?? ''),
                                   );
                                 },
                               ),
