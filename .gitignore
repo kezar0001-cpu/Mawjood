@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+# Admin dashboard
+admin/.next
+admin/node_modules
+admin/.env.local

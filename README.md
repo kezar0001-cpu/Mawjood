@@ -200,3 +200,41 @@ This project is licensed under the **MIT License**, allowing commercial and priv
 For inquiries, feature requests, or business onboarding:
 **Email:** yourname@example.com  
 **Project Owner:** Kezar  
+
+## Mawjood Admin Dashboard (Next.js)
+
+A production-ready admin panel for managing categories and businesses using Next.js 14 (App Router), TypeScript, Tailwind CSS, and Supabase Auth.
+
+### Prerequisites
+- Supabase project with the following tables and RLS policies enabled:
+  - `public.categories (id uuid pk, name_ar text not null, name_en text, icon text)`
+  - `public.businesses (id uuid pk, name text not null, category_id uuid references public.categories(id), description text, city text, address text, phone text, rating numeric, latitude double precision, longitude double precision, images text[], features text[])`
+  - `public.admins (id uuid pk default gen_random_uuid(), user_id uuid unique not null, email text unique not null, role text not null default 'admin', created_at timestamptz default now())`
+- RLS helpers:
+  - `public.is_admin()` returns `true` when `auth.uid()` exists in `public.admins.user_id`.
+  - Policies allowing public read on categories/businesses and full access for authenticated users where `is_admin()` is true.
+
+### Environment variables
+Create an `.env.local` file inside `admin/` with:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key-server-only>
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` is only used on the server. Never expose it to the browser.
+
+### Running locally
+
+```
+cd admin
+npm install
+npm run dev
+```
+
+The app will be available on http://localhost:3000. Log in with a Supabase Auth email/password user that also exists in `public.admins`.
+
+### Deployment (e.g., Vercel)
+- Set the environment variables above in your hosting provider (service role key as a server-side secret only).
+- Deploy the `admin` directory as a Next.js app connected to your Git repository.
