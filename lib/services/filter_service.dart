@@ -12,9 +12,10 @@ class LocationService {
   /// Get the user's current location with caching
   static Future<Position?> getCurrentLocation() async {
     // Return cached position if still valid
+    final lastFetch = _lastFetchTime;
     if (_cachedPosition != null &&
-        _lastFetchTime != null &&
-        DateTime.now().difference(_lastFetchTime!) < _cacheValidityDuration) {
+        lastFetch != null &&
+        DateTime.now().difference(lastFetch) < _cacheValidityDuration) {
       return _cachedPosition;
     }
 
@@ -96,9 +97,10 @@ List<Business> applyFilters(
 }) {
   var filtered = List<Business>.from(all);
 
-  if (filters.minRating != null) {
+  final minRating = filters.minRating;
+  if (minRating != null) {
     filtered = filtered
-        .where((business) => (business.rating ?? 0.0) >= filters.minRating!)
+        .where((business) => (business.rating ?? 0.0) >= minRating)
         .toList();
   }
 
@@ -120,12 +122,14 @@ List<Business> applyFilters(
   // Calculate distances if user location is available and sorting by nearest
   if (filters.sortBy == 'nearest' && userLocation != null) {
     filtered = filtered.map((business) {
-      if (business.latitude != null && business.longitude != null) {
+      final lat = business.latitude;
+      final lon = business.longitude;
+      if (lat != null && lon != null) {
         final distance = LocationService.calculateDistance(
           lat1: userLocation.latitude,
           lon1: userLocation.longitude,
-          lat2: business.latitude!,
-          lon2: business.longitude!,
+          lat2: lat,
+          lon2: lon,
         );
         return business.copyWith(distanceKm: distance);
       }
@@ -153,10 +157,12 @@ List<Business> applyFilters(
     case 'nearest':
       // Sort by distance, putting businesses without coordinates at the end
       filtered.sort((a, b) {
-        if (a.distanceKm == null && b.distanceKm == null) return 0;
-        if (a.distanceKm == null) return 1;
-        if (b.distanceKm == null) return -1;
-        return a.distanceKm!.compareTo(b.distanceKm!);
+        final distA = a.distanceKm;
+        final distB = b.distanceKm;
+        if (distA == null && distB == null) return 0;
+        if (distA == null) return 1;
+        if (distB == null) return -1;
+        return distA.compareTo(distB);
       });
       break;
     default:

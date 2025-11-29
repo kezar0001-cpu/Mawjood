@@ -155,9 +155,9 @@ class BusinessCard extends StatelessWidget {
                                   const Icon(Icons.navigation, size: 12, color: AppColors.primary),
                                   const SizedBox(width: 4),
                                   Text(
-                                    business.distanceKm! < 1
-                                        ? '${(business.distanceKm! * 1000).toStringAsFixed(0)} م'
-                                        : '${business.distanceKm!.toStringAsFixed(1)} كم',
+                                    (business.distanceKm ?? 0) < 1
+                                        ? '${((business.distanceKm ?? 0) * 1000).toStringAsFixed(0)} م'
+                                        : '${(business.distanceKm ?? 0).toStringAsFixed(1)} كم',
                                     style: theme.labelSmall?.copyWith(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.w700,

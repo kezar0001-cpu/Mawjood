@@ -316,10 +316,10 @@ class _ReviewCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (review.comment != null && review.comment!.isNotEmpty) ...[
+            if (review.comment != null && (review.comment?.isNotEmpty ?? false)) ...[
               const SizedBox(height: 12),
               Text(
-                review.comment!,
+                review.comment ?? '',
                 style: const TextStyle(fontSize: 14),
               ),
             ],
