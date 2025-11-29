@@ -109,29 +109,61 @@ flutter build apk --release
 
 # Supabase Integration Guide
 
-Mawjood ships with **mock mode enabled**, so it runs without any backend setup.
+## Configuration
 
-To connect to real Supabase:
+The app uses **absolute URLs** for all Supabase API calls to ensure compatibility with web builds and GitHub Pages deployment.
 
-1. Install Supabase CLI (optional)
-```
-npm install -g supabase
-```
+### Step 1: Configure Supabase Credentials
 
-2. Add your Supabase keys inside `main.dart` or an env file:
+Update the credentials in `lib/config/env_config.dart`:
+
 ```dart
-await Supabase.initialize(
-  url: "<YOUR_SUPABASE_URL>",
-  anonKey: "<YOUR_SUPABASE_ANON_KEY>",
+static const String supabaseUrl = String.fromEnvironment(
+  'SUPABASE_URL',
+  defaultValue: 'https://your-project-id.supabase.co', // ← Replace this
+);
+
+static const String supabaseAnonKey = String.fromEnvironment(
+  'SUPABASE_ANON_KEY',
+  defaultValue: 'your-anon-public-key', // ← Replace this
 );
 ```
 
-3. Disable mock mode:
-```dart
-useMock = false;
+Find your credentials in your Supabase project dashboard:
+- Go to https://app.supabase.com/project/YOUR_PROJECT_ID/settings/api
+- Copy your **Project URL** (e.g., `https://xxxxx.supabase.co`)
+- Copy your **anon/public** key
+
+**IMPORTANT:** The URL MUST be absolute (`https://...`), not a relative path like `/rest/v1`.
+
+### Step 2: Build with Environment Variables (Recommended for CI/CD)
+
+For production builds, pass credentials at compile time:
+
+```bash
+# Web build
+flutter build web --release \
+  --dart-define=SUPABASE_URL=https://your-project.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=your-anon-key
+
+# Android APK build
+flutter build apk --release \
+  --dart-define=SUPABASE_URL=https://your-project.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=your-anon-key
 ```
 
-4. Replace mock queries with real Supabase RPC/REST calls.
+### Step 3: GitHub Secrets (for GitHub Actions)
+
+For automated builds via GitHub Actions, add the following secrets to your repository:
+
+1. Go to your repository → Settings → Secrets and variables → Actions
+2. Add two secrets:
+   - `SUPABASE_URL` = `https://your-project-id.supabase.co`
+   - `SUPABASE_ANON_KEY` = your anon public key
+
+The workflows in `.github/workflows/` are already configured to use these secrets.
+
+### Schema Setup
 
 A fully prepared SQL schema can be provided on request.
 

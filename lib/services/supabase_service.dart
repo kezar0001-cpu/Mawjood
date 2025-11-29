@@ -1,18 +1,23 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config/env_config.dart';
 import '../models/business.dart';
 import '../models/category.dart';
 
 class SupabaseService {
-  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
-
   static SupabaseClient get client => Supabase.instance.client;
 
   static Future<void> initialize() async {
+    // Validate configuration before initializing
+    final configError = EnvConfig.configurationError;
+    if (configError != null) {
+      throw Exception('Supabase configuration error: $configError');
+    }
+
+    // Initialize with absolute URL - NEVER use relative paths
     await Supabase.initialize(
-      url: supabaseUrl,
-      anonKey: supabaseAnonKey,
+      url: EnvConfig.supabaseUrl,
+      anonKey: EnvConfig.supabaseAnonKey,
     );
   }
 
