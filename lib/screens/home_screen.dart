@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 
 import '../models/category.dart';
@@ -27,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('🏠 [HOME] initState called - fetching categories...');
     _categoriesFuture = _categoryRepository.fetchAll();
   }
 
@@ -149,13 +151,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return FutureBuilder<List<Category>>(
       future: _categoriesFuture,
       builder: (context, snapshot) {
+        debugPrint('🏠 [HOME] FutureBuilder state: ${snapshot.connectionState}');
+
         if (snapshot.connectionState == ConnectionState.waiting) {
+          debugPrint('🏠 [HOME] Waiting for categories...');
           return const _CategoryShimmerGrid();
         }
+
         if (snapshot.hasError) {
-          return const _ErrorBanner(message: 'تعذر تحميل التصنيفات من الخادم');
+          debugPrint('❌ [HOME] Error loading categories: ${snapshot.error}');
+          debugPrint('Stack: ${snapshot.stackTrace}');
+          return _ErrorBanner(
+            message: 'تعذر تحميل التصنيفات من الخادم\n${snapshot.error}',
+          );
         }
+
         final categories = snapshot.data ?? [];
+        debugPrint('✅ [HOME] Categories loaded: ${categories.length} items');
+
         if (categories.isEmpty) {
           return const _ErrorBanner(message: 'لا توجد تصنيفات متاحة حالياً');
         }
