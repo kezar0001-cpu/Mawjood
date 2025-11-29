@@ -1,13 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/business.dart';
 import '../models/filters.dart';
 import '../repositories/business_repository.dart';
 import '../services/filter_service.dart';
-import '../services/supabase_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text.dart';
 import '../widgets/business_card.dart';
@@ -28,7 +26,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   late TextEditingController _controller;
   Timer? _debounce;
   final BusinessRepository _repository = BusinessRepository();
-  RealtimeChannel? _channel;
   List<Business> _results = [];
   List<Business> _filteredResults = [];
   String _currentQuery = '';
@@ -42,14 +39,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     _controller = TextEditingController(text: widget.initialQuery);
     _currentQuery = widget.initialQuery;
     _runSearch(widget.initialQuery);
-    _subscribeToRealtime();
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
-    _channel?.unsubscribe();
     super.dispose();
   }
 
@@ -98,19 +93,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   void _onSubmit(String value) {
     _debounce?.cancel();
     _runSearch(value);
-  }
-
-  void _subscribeToRealtime() {
-    if (SupabaseService.useMock) return;
-
-    _channel = SupabaseService.client
-        .channel('public:businesses')
-        .on(
-          RealtimeListenTypes.postgresChanges,
-          const ChannelFilter(event: '*', schema: 'public', table: 'businesses'),
-          (payload, [ref]) => _runSearch(_currentQuery),
-        )
-        .subscribe();
   }
 
   void _openFilters() async {
@@ -289,11 +271,15 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         final business = _filteredResults[index];
         return BusinessCard(
           business: business,
+          categoryLabel: business.city,
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => BusinessDetailScreen(business: business),
+                builder: (_) => BusinessDetailScreen(
+                  businessId: business.id,
+                  initialBusiness: business,
+                ),
               ),
             );
           },

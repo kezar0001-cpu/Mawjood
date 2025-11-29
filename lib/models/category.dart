@@ -1,43 +1,55 @@
 import 'package:flutter/material.dart';
 
+@immutable
 class Category {
   final String id;
   final String nameAr;
   final String nameEn;
   final String? icon;
-  final Color color;
 
   const Category({
     required this.id,
     required this.nameAr,
     required this.nameEn,
     this.icon,
-    this.color = const Color(0xFF00897B),
   });
 
-  String get displayName => nameAr.isNotEmpty ? nameAr : nameEn;
-
-  IconData get iconData => _iconFromName(icon);
-
-  factory Category.fromJson(Map<String, dynamic> json) {
+  factory Category.fromMap(Map<String, dynamic> map) {
     return Category(
-      id: json['id']?.toString() ?? '',
-      nameAr: json['name_ar']?.toString() ?? json['name']?.toString() ?? '',
-      nameEn: json['name_en']?.toString() ?? json['name']?.toString() ?? '',
-      icon: json['icon']?.toString(),
-      color: json['color'] is int
-          ? Color(json['color'] as int)
-          : const Color(0xFF00897B),
+      id: map['id']?.toString() ?? '',
+      nameAr: map['name_ar']?.toString() ?? '',
+      nameEn: map['name_en']?.toString() ?? '',
+      icon: map['icon']?.toString(),
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name_ar': nameAr,
       'name_en': nameEn,
       'icon': icon,
     };
+  }
+
+  String get displayName => nameAr.isNotEmpty ? nameAr : nameEn;
+
+  IconData get iconData => _iconFromName(icon);
+
+  Color get color => const Color(0xFF00897B);
+
+  Category copyWith({
+    String? id,
+    String? nameAr,
+    String? nameEn,
+    String? icon,
+  }) {
+    return Category(
+      id: id ?? this.id,
+      nameAr: nameAr ?? this.nameAr,
+      nameEn: nameEn ?? this.nameEn,
+      icon: icon ?? this.icon,
+    );
   }
 
   static IconData _iconFromName(String? iconName) {
