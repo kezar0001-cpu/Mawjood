@@ -217,13 +217,18 @@ class _MawjoodAppState extends State<MawjoodApp> {
           }
         }
         if (settings.name == BusinessDetailScreen.routeName) {
-          final args = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (_) => BusinessDetailScreen(
-              businessId: args['businessId'] as String,
-              initialBusiness: args['business'] as Business?,
-            ),
-          );
+          final args = settings.arguments;
+          if (args is Map<String, dynamic>) {
+            final businessId = args['businessId'];
+            if (businessId is String) {
+              return MaterialPageRoute(
+                builder: (_) => BusinessDetailScreen(
+                  businessId: businessId,
+                  initialBusiness: args['business'] as Business?,
+                ),
+              );
+            }
+          }
         }
         return null;
       },
