@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Database } from '@/types/supabase';
+import { Database } from '../../types/supabase';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 

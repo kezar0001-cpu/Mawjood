@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { Table, THead, TR, TH, TBody, TD } from '@/components/ui/Table';
 import { Database } from '@/types/supabase';
 
+
 const PAGE_SIZE = 20;
 
 type BusinessRow = Database['public']['Tables']['businesses']['Row'] & {

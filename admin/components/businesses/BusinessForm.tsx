@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
-import { Database } from '@/types/supabase';
+import { Database } from '../../types/supabase';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 type Business = Database['public']['Tables']['businesses']['Row'];
