@@ -24,14 +24,18 @@ class Review {
 
   factory Review.fromMap(Map<String, dynamic> map) {
     return Review(
-      id: map['id'] as String,
-      businessId: map['business_id'] as String,
-      userId: map['user_id'] as String?,
-      userName: map['user_name'] as String,
-      rating: (map['rating'] as num).toInt(),
-      comment: map['comment'] as String?,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      id: map['id']?.toString() ?? '',
+      businessId: map['business_id']?.toString() ?? '',
+      userId: map['user_id']?.toString(),
+      userName: map['user_name']?.toString() ?? 'مجهول',
+      rating: map['rating'] != null ? (map['rating'] as num).toInt() : 0,
+      comment: map['comment']?.toString(),
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: map['updated_at'] != null
+          ? DateTime.parse(map['updated_at'] as String)
+          : DateTime.now(),
     );
   }
 

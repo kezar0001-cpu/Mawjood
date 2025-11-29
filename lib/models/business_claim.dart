@@ -47,23 +47,27 @@ class BusinessClaim {
 
   factory BusinessClaim.fromMap(Map<String, dynamic> map) {
     return BusinessClaim(
-      id: map['id'] as String,
-      businessId: map['business_id'] as String,
-      userId: map['user_id'] as String,
-      userName: map['user_name'] as String,
-      userEmail: map['user_email'] as String,
-      userPhone: map['user_phone'] as String?,
+      id: map['id']?.toString() ?? '',
+      businessId: map['business_id']?.toString() ?? '',
+      userId: map['user_id']?.toString() ?? '',
+      userName: map['user_name']?.toString() ?? 'مجهول',
+      userEmail: map['user_email']?.toString() ?? '',
+      userPhone: map['user_phone']?.toString(),
       proofDocuments: map['proof_documents'] != null
           ? List<String>.from(map['proof_documents'])
           : const [],
-      status: _parseStatus(map['status'] as String),
-      adminNotes: map['admin_notes'] as String?,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      status: _parseStatus(map['status']?.toString() ?? 'pending'),
+      adminNotes: map['admin_notes']?.toString(),
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: map['updated_at'] != null
+          ? DateTime.parse(map['updated_at'] as String)
+          : DateTime.now(),
     );
   }
 
-  static ClaimStatus _parseStatus(String status) {
+  static ClaimStatus _parseStatus(String? status) {
     switch (status) {
       case 'approved':
         return ClaimStatus.approved;
