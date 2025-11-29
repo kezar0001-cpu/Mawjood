@@ -46,4 +46,5 @@ app.*.map.json
 # Admin dashboard
 admin/.next
 admin/node_modules
+node_modules/
 admin/.env.local
