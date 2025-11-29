@@ -27,6 +27,7 @@ await Supabase.initialize(
       ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5d2pka3Vucmtha3h3Z2R3c2p6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjQwMjYsImV4cCI6MjA3OTkwMDAyNn0.TjviqrZWd1wUnTFS8YpbXDrH3BfidpmgQkgALZQNzs4'                  // FULL STATIC KEY FOR WEB
       : EnvConfig.supabaseAnonKey,
 );
+  }
 
   static Future<List<Category>> getCategories() async {
     try {
