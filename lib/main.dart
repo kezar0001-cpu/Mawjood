@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -49,15 +50,35 @@ ThemeData buildTheme() {
 }
 
 Future<void> main() async {
+  // Global error handler to catch initialization errors before widget tree is built
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('═══════════════════════════════════════════════════');
+    debugPrint('Flutter Error Caught:');
+    debugPrint('Error: ${details.exception}');
+    debugPrint('Stack: ${details.stack}');
+    debugPrint('Library: ${details.library}');
+    debugPrint('Context: ${details.context}');
+    debugPrint('═══════════════════════════════════════════════════');
+  };
+
   WidgetsFlutterBinding.ensureInitialized();
+
+  debugPrint('🚀 [MAIN] Starting Mawjood initialization...');
+  debugPrint('🌐 [MAIN] Platform: ${kIsWeb ? "WEB" : "MOBILE"}');
+
   final initFuture = SupabaseService.initialize();
 
   try {
+    debugPrint('⏳ [MAIN] Waiting for Supabase initialization...');
     await initFuture;
-  } catch (e) {
-    debugPrint('Init error: $e');
+    debugPrint('✅ [MAIN] Supabase initialization completed successfully');
+  } catch (e, stackTrace) {
+    debugPrint('❌ [MAIN] Supabase initialization error: $e');
+    debugPrint('Stack trace: $stackTrace');
   }
 
+  debugPrint('🎬 [MAIN] Running app...');
   runApp(MawjoodBootstrap(initFuture: initFuture));
 }
 
@@ -160,17 +181,31 @@ class _MawjoodAppState extends State<MawjoodApp> {
   @override
   void initState() {
     super.initState();
+    debugPrint('📱 [APP] MawjoodApp initState called');
     _checkOnboardingStatus();
   }
 
   Future<void> _checkOnboardingStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+    debugPrint('🔍 [APP] Checking onboarding status...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
 
-    setState(() {
-      _hasSeenOnboarding = hasSeenOnboarding;
-      _isLoading = false;
-    });
+      debugPrint('✓ [APP] Onboarding status: ${hasSeenOnboarding ? "completed" : "not shown"}');
+
+      setState(() {
+        _hasSeenOnboarding = hasSeenOnboarding;
+        _isLoading = false;
+      });
+
+      debugPrint('📍 [APP] Will navigate to: ${hasSeenOnboarding ? "HomeScreen" : "OnboardingScreen"}');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [APP] Error checking onboarding status: $e');
+      debugPrint('Stack: $stackTrace');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
