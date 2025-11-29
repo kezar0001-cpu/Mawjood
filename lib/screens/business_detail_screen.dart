@@ -246,9 +246,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               onPressed: () async {
                 final isValid = formKey.currentState?.validate() ?? false;
                 if (isValid) {
+                  final currentBusiness = _business;
+                  if (currentBusiness == null) {
+                    Navigator.pop(context);
+                    return;
+                  }
+
                   Navigator.pop(context);
                   final claim = await SupabaseService.submitBusinessClaim(
-                    businessId: _business!.id,
+                    businessId: currentBusiness.id,
                     userName: nameController.text.trim(),
                     userEmail: emailController.text.trim(),
                     userPhone: phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
