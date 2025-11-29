@@ -11,7 +11,7 @@ import { Database } from '@/types/supabase';
 const PAGE_SIZE = 20;
 
 type BusinessRow = Database['public']['Tables']['businesses']['Row'] & {
-  category?: { name_ar: string } | null;
+  categories?: { name_ar: string } | null;
 };
 
 type Props = {
@@ -37,7 +37,24 @@ export default function BusinessesTable({ categories }: Props) {
     setLoading(true);
     let query = supabase
       .from('businesses')
-      .select('id, name, city, phone, rating, category:categories(name_ar)', { count: 'exact' })
+      .select(
+        `
+    id,
+    name,
+    category_id,
+    description,
+    city,
+    address,
+    phone,
+    rating,
+    latitude,
+    longitude,
+    images,
+    features,
+    categories(name_ar)
+  `,
+        { count: 'exact' }
+      )
       .order('name');
 
     if (cityFilter) {
@@ -50,16 +67,16 @@ export default function BusinessesTable({ categories }: Props) {
       query = query.ilike('name', `%${search}%`);
     }
 
-    const from = (page - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
+    const start = (page - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE - 1;
 
-    const { data, error, count } = await query.range(from, to);
+    const { data, error, count } = await query.range(start, end);
 
     if (error) {
       setError(error.message);
       setData([]);
     } else {
-      setData((data || []) as BusinessRow[]);
+      setData((data ?? []) as BusinessRow[]);
       setCount(count ?? null);
     }
 
@@ -116,7 +133,7 @@ export default function BusinessesTable({ categories }: Props) {
               >
                 <TD>{business.name}</TD>
                 <TD>{business.city || '-'}</TD>
-                <TD>{business.category?.name_ar || '-'}</TD>
+                <TD>{business.categories?.name_ar || '-'}</TD>
                 <TD>{business.rating ?? '-'}</TD>
                 <TD>{business.phone || '-'}</TD>
               </TR>
