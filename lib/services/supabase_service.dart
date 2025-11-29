@@ -89,7 +89,7 @@ await Supabase.initialize(
         // Get review count for this business
         final reviewCountResponse = await client
             .from('reviews')
-            .select('id', count: CountOption.exact)
+            .select('id', const FetchOptions(count: CountOption.exact))
             .eq('business_id', id);
 
         final reviewCount = reviewCountResponse.count ?? 0;
