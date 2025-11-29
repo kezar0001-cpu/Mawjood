@@ -35,24 +35,27 @@ export default function BusinessesTable({ categories }: Props) {
 
   const loadBusinesses = async () => {
     setLoading(true);
+
     let query = supabase
       .from('businesses')
       .select(
         `
-    id,
-    name,
-    category_id,
-    description,
-    city,
-    address,
-    phone,
-    rating,
-    latitude,
-    longitude,
-    images,
-    features,
-    categories(name_ar)
-  `,
+          id,
+          name,
+          category_id,
+          description,
+          city,
+          address,
+          phone,
+          rating,
+          latitude,
+          longitude,
+          images,
+          features,
+          categories:categories!businesses_category_id_fkey (
+            name_ar
+          )
+        `,
         { count: 'exact' }
       )
       .order('name');
@@ -76,7 +79,8 @@ export default function BusinessesTable({ categories }: Props) {
       setError(error.message);
       setData([]);
     } else {
-      setData((data ?? []) as BusinessRow[]);
+      // Fix TS mismatch
+      setData((data ?? []) as unknown as BusinessRow[]);
       setCount(count ?? null);
     }
 
@@ -94,6 +98,7 @@ export default function BusinessesTable({ categories }: Props) {
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-4">
         <Input placeholder="Filter by city" value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} />
+
         <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           <option value="">All categories</option>
           {categories.map((cat) => (
@@ -102,6 +107,7 @@ export default function BusinessesTable({ categories }: Props) {
             </option>
           ))}
         </Select>
+
         <Input
           placeholder="Search by name"
           className="md:col-span-2"
@@ -111,6 +117,7 @@ export default function BusinessesTable({ categories }: Props) {
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -124,23 +131,24 @@ export default function BusinessesTable({ categories }: Props) {
               <TH>Phone</TH>
             </TR>
           </THead>
+
           <TBody>
             {data.map((business) => (
               <TR
                 key={business.id}
-                className="cursor-pointer hover:bg-gray-50"
-                onClick={() => router.push(`/dashboard/businesses/${business.id}`)}
+                className="hover:bg-gray-50"
               >
-                <TD>{business.name}</TD>
-                <TD>{business.city || '-'}</TD>
-                <TD>{business.categories?.name_ar || '-'}</TD>
-                <TD>{business.rating ?? '-'}</TD>
-                <TD>{business.phone || '-'}</TD>
+                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.name}</div></TD>
+                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.city || '-'}</div></TD>
+                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.categories?.name_ar || '-'}</div></TD>
+                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.rating ?? '-'}</div></TD>
+                <TD><div className="cursor-pointer" onClick={() => router.push(`/dashboard/businesses/${business.id}`)}>{business.phone || '-'}</div></TD>
               </TR>
             ))}
+
             {data.length === 0 && (
               <TR>
-                <TD colSpan={5}>No businesses found.</TD>
+                <td colSpan={5} className="text-center py-4">No businesses found.</td>
               </TR>
             )}
           </TBody>
@@ -151,6 +159,7 @@ export default function BusinessesTable({ categories }: Props) {
         <span>
           Page {page} of {totalPages}
         </span>
+
         <div className="space-x-2">
           <button
             disabled={page === 1}
@@ -159,6 +168,7 @@ export default function BusinessesTable({ categories }: Props) {
           >
             Previous
           </button>
+
           <button
             disabled={page === totalPages}
             className="rounded border border-gray-200 px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50"
