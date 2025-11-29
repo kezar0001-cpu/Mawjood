@@ -17,6 +17,10 @@ class Business {
   final double? longitude;
   final List<String> images;
   final List<String> features;
+  final int reviewCount;
+  final bool verified;
+  final String? ownerId;
+  final double? distanceKm; // Distance from user's location
 
   Business({
     required this.id,
@@ -34,6 +38,10 @@ class Business {
     this.longitude,
     this.images = const [],
     this.features = const [],
+    this.reviewCount = 0,
+    this.verified = false,
+    this.ownerId,
+    this.distanceKm,
   });
 
   factory Business.fromMap(Map<String, dynamic> map) {
@@ -53,6 +61,10 @@ class Business {
       longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
       images: map['images'] != null ? List<String>.from(map['images']) : const [],
       features: map['features'] != null ? List<String>.from(map['features']) : const [],
+      reviewCount: map['review_count'] != null ? (map['review_count'] as num).toInt() : 0,
+      verified: map['verified'] == true,
+      ownerId: map['owner_id'],
+      distanceKm: map['distance_km'] != null ? (map['distance_km'] as num).toDouble() : null,
     );
   }
 
@@ -73,6 +85,10 @@ class Business {
       'longitude': longitude,
       'images': images,
       'features': features,
+      'review_count': reviewCount,
+      'verified': verified,
+      'owner_id': ownerId,
+      'distance_km': distanceKm,
     };
   }
 
@@ -89,6 +105,10 @@ class Business {
     double? longitude,
     List<String>? images,
     List<String>? features,
+    int? reviewCount,
+    bool? verified,
+    String? ownerId,
+    double? distanceKm,
   }) {
     return Business(
       id: id ?? this.id,
@@ -103,6 +123,10 @@ class Business {
       longitude: longitude ?? this.longitude,
       images: images ?? this.images,
       features: features ?? this.features,
+      reviewCount: reviewCount ?? this.reviewCount,
+      verified: verified ?? this.verified,
+      ownerId: ownerId ?? this.ownerId,
+      distanceKm: distanceKm ?? this.distanceKm,
     );
   }
 

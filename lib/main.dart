@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/business_detail_screen.dart';
 import 'screens/business_list_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
 import 'services/supabase_service.dart';
@@ -52,11 +54,46 @@ Future<void> main() async {
   runApp(const MawjoodApp());
 }
 
-class MawjoodApp extends StatelessWidget {
+class MawjoodApp extends StatefulWidget {
   const MawjoodApp({super.key});
 
   @override
+  State<MawjoodApp> createState() => _MawjoodAppState();
+}
+
+class _MawjoodAppState extends State<MawjoodApp> {
+  bool _isLoading = true;
+  bool _hasSeenOnboarding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboardingStatus();
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+
+    setState(() {
+      _hasSeenOnboarding = hasSeenOnboarding;
+      _isLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp(
       title: AppText.appName,
       debugShowCheckedModeBanner: false,
@@ -68,8 +105,9 @@ class MawjoodApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      initialRoute: HomeScreen.routeName,
+      initialRoute: _hasSeenOnboarding ? HomeScreen.routeName : OnboardingScreen.routeName,
       routes: {
+        OnboardingScreen.routeName: (_) => const OnboardingScreen(),
         HomeScreen.routeName: (_) => const HomeScreen(),
         SearchScreen.routeName: (_) => const SearchScreen(),
         SettingsScreen.routeName: (_) => const SettingsScreen(),
@@ -86,15 +124,15 @@ class MawjoodApp extends StatelessWidget {
             );
           }
         }
-    if (settings.name == BusinessDetailScreen.routeName) {
-      final args = settings.arguments as Map<String, dynamic>;
-      return MaterialPageRoute(
-        builder: (_) => BusinessDetailScreen(
-          businessId: args['businessId'] as String,
-          initialBusiness: args['business'] as Business?,
-        ),
-      );
-    }
+        if (settings.name == BusinessDetailScreen.routeName) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (_) => BusinessDetailScreen(
+              businessId: args['businessId'] as String,
+              initialBusiness: args['business'] as Business?,
+            ),
+          );
+        }
         return null;
       },
     );
