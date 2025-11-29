@@ -20,4 +20,6 @@ export const TR = ({ children, className }: { children: ReactNode; className?: s
   <tr className={className}>{children}</tr>
 );
 
-export const TD = ({ children }: { children: ReactNode }) => <td className="px-4 py-3 align-middle">{children}</td>;
+export const TD = ({ children, className, colSpan }: { children: ReactNode; className?: string; colSpan?: number }) => (
+  <td className={`px-4 py-3 align-middle ${className || ''}`} colSpan={colSpan}>{children}</td>
+);
