@@ -1,5 +1,9 @@
 name: Flutter Web Build and Deploy
 
+permissions:
+  contents: write
+  pages: write
+
 on:
   push:
     branches:
