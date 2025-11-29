@@ -244,7 +244,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (formKey.currentState!.validate()) {
+                final isValid = formKey.currentState?.validate() ?? false;
+                if (isValid) {
                   Navigator.pop(context);
                   final claim = await SupabaseService.submitBusinessClaim(
                     businessId: _business!.id,

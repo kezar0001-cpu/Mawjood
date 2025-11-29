@@ -61,7 +61,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   }
 
   Future<void> _submitReview() async {
-    if (!_formKey.currentState!.validate()) return;
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
 
     setState(() {
       _isSubmitting = true;
