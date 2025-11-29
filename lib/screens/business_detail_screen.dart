@@ -139,10 +139,14 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        body: SafeArea(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : business == null
+        appBar: AppBar(
+          title: Text(business?.name ?? 'تفاصيل النشاط'),
+          centerTitle: true,
+          elevation: 0,
+        ),
+        body: _isLoading
+            ? const _DetailShimmerLayout()
+            : business == null
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -159,10 +163,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _HeroHeader(
-                                imageUrl: business.primaryImage,
-                                onBack: () => Navigator.pop(context),
-                              ),
+                              _HeroHeader(imageUrl: business.primaryImage),
                               Padding(
                                 padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 8),
                                 child: Column(
@@ -371,7 +372,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         ),
                       ],
                     ),
-        ),
       ),
     );
   }
@@ -434,13 +434,9 @@ class _RelatedShimmer extends StatelessWidget {
 }
 
 class _HeroHeader extends StatelessWidget {
-  const _HeroHeader({
-    required this.imageUrl,
-    required this.onBack,
-  });
+  const _HeroHeader({required this.imageUrl});
 
   final String? imageUrl;
-  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -448,58 +444,27 @@ class _HeroHeader extends StatelessWidget {
       padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 0),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            Container(
-              height: 240,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.neutral,
-                image: imageUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(imageUrl!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: imageUrl == null
-                  ? const Center(
-                      child: Icon(
-                        Icons.store_mall_directory_outlined,
-                        size: 56,
-                        color: AppColors.primary,
-                      ),
-                    )
-                  : null,
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black38, Colors.black54],
+        child: Container(
+          height: 240,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.neutral,
+            image: imageUrl != null
+                ? DecorationImage(
+                    image: NetworkImage(imageUrl!),
+                    fit: BoxFit.cover,
+                  )
+                : null,
+          ),
+          child: imageUrl == null
+              ? const Center(
+                  child: Icon(
+                    Icons.store_mall_directory_outlined,
+                    size: 56,
+                    color: AppColors.primary,
                   ),
-                ),
-              ),
-            ),
-            PositionedDirectional(
-              top: 12,
-              start: 12,
-              child: Material(
-                color: Colors.white.withOpacity(0.14),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: onBack,
-                  child: const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Icon(Icons.arrow_back_rounded, color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
-          ],
+                )
+              : null,
         ),
       ),
     );
@@ -558,6 +523,154 @@ class _MapPreview extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DetailShimmerLayout extends StatelessWidget {
+  const _DetailShimmerLayout();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Hero image shimmer
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 0),
+            child: Container(
+              height: 240,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDEDED),
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Business name shimmer
+                Container(
+                  height: 24,
+                  width: 200,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDEDED),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // City and rating shimmer
+                Row(
+                  children: [
+                    Container(
+                      height: 28,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDEDED),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      height: 20,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDEDED),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Description shimmer
+                Container(
+                  height: 16,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDEDED),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  height: 16,
+                  width: 250,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDEDED),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Action buttons shimmer
+                Row(
+                  children: List.generate(
+                    3,
+                    (index) => Expanded(
+                      child: Container(
+                        height: 48,
+                        margin: EdgeInsets.only(
+                          left: index < 2 ? 10 : 0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEDEDED),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 28, thickness: 1, color: Color(0xFFECE9DF)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Section title shimmer
+                Container(
+                  height: 18,
+                  width: 120,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDEDED),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Content lines shimmer
+                ...List.generate(
+                  3,
+                  (index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Container(
+                      height: 14,
+                      width: index == 2 ? 180 : double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDEDED),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Map preview shimmer
+                Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDEDED),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

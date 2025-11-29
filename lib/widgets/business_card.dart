@@ -58,7 +58,8 @@ class BusinessCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
                                 color: AppColors.darkText,
                               ),
                             ),
@@ -99,7 +100,7 @@ class BusinessCard extends StatelessWidget {
                       Text(
                         business.description ?? '',
                         textAlign: TextAlign.right,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.bodyMedium?.copyWith(color: Colors.black87),
                       ),
@@ -152,16 +153,21 @@ class _CallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
+    return Material(
+      color: AppColors.primary,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: IconButton(
-        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-        icon: const Icon(Icons.call_rounded, color: AppColors.primary),
-        onPressed: onCall,
-        tooltip: 'اتصال',
+        onTap: onCall,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          padding: const EdgeInsets.all(10),
+          child: const Icon(
+            Icons.call_rounded,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
       ),
     );
   }
