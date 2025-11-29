@@ -50,8 +50,90 @@ ThemeData buildTheme() {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SupabaseService.initialize();
-  runApp(const MawjoodApp());
+  runApp(const MawjoodBootstrap());
+}
+
+class MawjoodBootstrap extends StatefulWidget {
+  const MawjoodBootstrap({super.key});
+
+  @override
+  State<MawjoodBootstrap> createState() => _MawjoodBootstrapState();
+}
+
+class _MawjoodBootstrapState extends State<MawjoodBootstrap> {
+  late Future<void> _initFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture = SupabaseService.initialize();
+  }
+
+  void _retryInitialization() {
+    setState(() {
+      _initFuture = SupabaseService.initialize();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: buildTheme(),
+            home: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Scaffold(
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off, size: 48, color: AppColors.primary),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'تعذر تهيئة التطبيق',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          snapshot.error.toString(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _retryInitialization,
+                          child: const Text('إعادة المحاولة'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return const MawjoodApp();
+      },
+    );
+  }
 }
 
 class MawjoodApp extends StatefulWidget {
