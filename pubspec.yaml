@@ -12,7 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   url_launcher: ^6.3.0
   cached_network_image: ^3.3.1
-  supabase_flutter: ^2.4.3
+  supabase_flutter: ^2.10.3
   google_fonts: ^6.2.1
   flutter_localizations:
     sdk: flutter
