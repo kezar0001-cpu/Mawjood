@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import BusinessesTable from './table';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BusinessesPage() {
   const supabase = createSupabaseServerClient();
   const { data: categories } = await supabase.from('categories').select('id, name_ar').order('name_ar');
