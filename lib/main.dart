@@ -1,19 +1,26 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'firebase_options.dart';
+import 'models/business.dart';
+import 'models/category.dart';
 import 'screens/business_detail_screen.dart';
 import 'screens/business_list_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
+import 'services/analytics_service.dart';
+import 'services/cache_service.dart';
+import 'services/connectivity_service.dart';
 import 'services/supabase_service.dart';
-import 'models/business.dart';
-import 'models/category.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_text.dart';
+import 'widgets/offline_indicator.dart';
 
 ThemeData buildTheme() {
   final base = ThemeData(
@@ -50,8 +57,34 @@ ThemeData buildTheme() {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase
   await SupabaseService.initialize();
-  runApp(const MawjoodApp());
+
+  // Initialize Firebase (with error handling for missing config)
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+    debugPrint('Firebase Analytics and Crashlytics will not be available.');
+  }
+
+  // Initialize Hive cache
+  await CacheService.initialize();
+
+  // Initialize connectivity service
+  await ConnectivityService().initialize();
+
+  // Initialize analytics service
+  await AnalyticsService().initialize();
+
+  runApp(
+    const ProviderScope(
+      child: MawjoodApp(),
+    ),
+  );
 }
 
 class MawjoodApp extends StatefulWidget {
@@ -108,8 +141,8 @@ class _MawjoodAppState extends State<MawjoodApp> {
       initialRoute: _hasSeenOnboarding ? HomeScreen.routeName : OnboardingScreen.routeName,
       routes: {
         OnboardingScreen.routeName: (_) => const OnboardingScreen(),
-        HomeScreen.routeName: (_) => const HomeScreen(),
-        SearchScreen.routeName: (_) => const SearchScreen(),
+        HomeScreen.routeName: (_) => OfflineIndicator(child: const HomeScreen()),
+        SearchScreen.routeName: (_) => OfflineIndicator(child: const SearchScreen()),
         SettingsScreen.routeName: (_) => const SettingsScreen(),
       },
       onGenerateRoute: (settings) {
@@ -117,9 +150,11 @@ class _MawjoodAppState extends State<MawjoodApp> {
           final args = settings.arguments;
           if (args is Map<String, dynamic> && args['category'] is Category) {
             return MaterialPageRoute(
-              builder: (_) => BusinessListScreen(
-                category: args['category'] as Category,
-                businesses: args['businesses'] as List<Business>?,
+              builder: (_) => OfflineIndicator(
+                child: BusinessListScreen(
+                  category: args['category'] as Category,
+                  businesses: args['businesses'] as List<Business>?,
+                ),
               ),
             );
           }
@@ -127,9 +162,11 @@ class _MawjoodAppState extends State<MawjoodApp> {
         if (settings.name == BusinessDetailScreen.routeName) {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
-            builder: (_) => BusinessDetailScreen(
-              businessId: args['businessId'] as String,
-              initialBusiness: args['business'] as Business?,
+            builder: (_) => OfflineIndicator(
+              child: BusinessDetailScreen(
+                businessId: args['businessId'] as String,
+                initialBusiness: args['business'] as Business?,
+              ),
             ),
           );
         }

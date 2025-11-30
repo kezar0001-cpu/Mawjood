@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/category.dart';
-import '../repositories/category_repository.dart';
+import '../providers/category_provider.dart';
+import '../services/analytics_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text.dart';
 import '../widgets/category_card.dart';
@@ -10,24 +12,23 @@ import 'business_list_screen.dart';
 import 'settings_screen.dart';
 import 'search_results_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   static const String routeName = '/';
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  late Future<List<Category>> _categoriesFuture;
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final CategoryRepository _categoryRepository = CategoryRepository();
+  final AnalyticsService _analytics = AnalyticsService();
 
   @override
   void initState() {
     super.initState();
-    _categoriesFuture = _categoryRepository.fetchAll();
+    _analytics.logScreenView('home_screen');
   }
 
   @override
@@ -37,13 +38,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleRefresh() async {
-    setState(() {
-      _categoriesFuture = _categoryRepository.fetchAll();
-    });
-    await _categoriesFuture;
+    ref.invalidate(categoriesProvider);
   }
 
   void _openSearch(String query) {
+    _analytics.logNavigation('home_screen', 'search_results_screen');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -146,16 +145,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Premium-styled grid of category cards with consistent breathing room.
   Widget _buildCategoryGrid() {
-    return FutureBuilder<List<Category>>(
-      future: _categoriesFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _CategoryShimmerGrid();
-        }
-        if (snapshot.hasError) {
-          return const _ErrorBanner(message: 'تعذر تحميل التصنيفات من الخادم');
-        }
-        final categories = snapshot.data ?? [];
+    final categoriesAsync = ref.watch(categoriesProvider);
+
+    return categoriesAsync.when(
+      data: (categories) {
         if (categories.isEmpty) {
           return const _ErrorBanner(message: 'لا توجد تصنيفات متاحة حالياً');
         }
@@ -179,6 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 return CategoryCard(
                   category: category,
                   onTap: () {
+                    _analytics.logCategorySelect(category.id, category.displayName);
+                    _analytics.logNavigation('home_screen', 'business_list_screen');
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -191,6 +186,11 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         );
+      },
+      loading: () => const _CategoryShimmerGrid(),
+      error: (error, stack) {
+        _analytics.logError(error, stack, reason: 'Failed to load categories');
+        return const _ErrorBanner(message: 'تعذر تحميل التصنيفات من الخادم');
       },
     );
   }

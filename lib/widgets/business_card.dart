@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/business.dart';
 import '../utils/app_colors.dart';
+import '../utils/image_transform_helper.dart';
 
 class BusinessCard extends StatelessWidget {
   BusinessCard({
@@ -265,12 +266,29 @@ class _BusinessImage extends StatelessWidget {
         color: AppColors.neutral,
         child: imageUrl != null
             ? CachedNetworkImage(
-                imageUrl: imageUrl!,
+                imageUrl: ImageTransformHelper.getThumbnailUrl(
+                  imageUrl!,
+                  width: 200,
+                  quality: 80,
+                ),
                 fit: BoxFit.cover,
                 width: 92,
                 height: 92,
-                placeholder: (context, url) => Container(color: AppColors.neutral),
-                errorWidget: (context, url, error) => const Icon(Icons.store_mall_directory_outlined, color: AppColors.primary),
+                memCacheWidth: 200,
+                fadeInDuration: const Duration(milliseconds: 300),
+                placeholder: (context, url) => Container(
+                  color: AppColors.neutral,
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => const Icon(
+                  Icons.store_mall_directory_outlined,
+                  color: AppColors.primary,
+                ),
               )
             : const Icon(Icons.store_mall_directory_outlined, color: AppColors.primary),
       ),
