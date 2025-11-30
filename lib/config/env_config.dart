@@ -1,31 +1,46 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 /// Environment configuration for the Mawjood application.
 ///
-/// Supabase configuration with static credentials.
-/// These values are hardcoded to ensure Flutter Web builds work correctly.
+/// Loads Supabase credentials from a .env file for secure and flexible configuration.
 class EnvConfig {
-  /// Supabase project URL
-  /// This is an absolute URL that points to the Supabase project.
-  static const String supabaseUrl = 'https://yywjdkunrkakxwgdwsjz.supabase.co';
+  /// Supabase project URL loaded from .env file.
+  final String supabaseUrl;
 
-  /// Supabase anonymous/public API key
-  /// This is safe to use in client-side code
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5d2pka3Vucmtha3h3Z2R3c2p6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjQwMjYsImV4cCI6MjA3OTkwMDAyNn0.TjviqrZWd1wUnTFS8YpbXDrH3BfidpmgQkgALZQNzs4';
+  /// Supabase anonymous/public API key loaded from .env file.
+  final String supabaseAnonKey;
 
-  /// Validates that the configuration has been set up correctly
-  static bool get isConfigured {
+  EnvConfig({required this.supabaseUrl, required this.supabaseAnonKey});
+
+  /// Factory constructor to load configuration from the .env file.
+  factory EnvConfig.load() {
+    // Ensure that the .env file is loaded before accessing variables
+    if (dotenv.env.isEmpty) {
+      throw Exception(
+        'Dotenv has not been initialized. Call dotenv.load() in main.dart',
+      );
+    }
+    return EnvConfig(
+      supabaseUrl: dotenv.env['SUPABASE_URL'] ?? '',
+      supabaseAnonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    );
+  }
+
+  /// Validates that the configuration has been set up correctly.
+  bool get isConfigured {
     return supabaseUrl.isNotEmpty &&
         supabaseAnonKey.isNotEmpty &&
         supabaseUrl.startsWith('https://') &&
         supabaseUrl.contains('.supabase.co');
   }
 
-  /// Returns a user-friendly error message if configuration is invalid
-  static String? get configurationError {
+  /// Returns a user-friendly error message if configuration is invalid.
+  String? get configurationError {
     if (supabaseUrl.isEmpty) {
-      return 'Supabase URL is empty';
+      return 'SUPABASE_URL is not defined in .env file';
     }
     if (supabaseAnonKey.isEmpty) {
-      return 'Supabase anon key is empty';
+      return 'SUPABASE_ANON_KEY is not defined in .env file';
     }
     if (!supabaseUrl.startsWith('https://')) {
       return 'Supabase URL must start with https://';

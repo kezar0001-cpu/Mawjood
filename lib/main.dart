@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'firebase_options.dart';
 import 'models/business.dart';
 import 'models/category.dart';
 import 'screens/business_detail_screen.dart';
@@ -14,15 +14,11 @@ import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
-import 'services/analytics_service.dart';
-import 'services/cache_service.dart';
-import 'services/connectivity_service.dart';
 import 'services/supabase_service.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_text.dart';
 import 'widgets/offline_indicator.dart';
 
-// FIXED: Added error handling for GoogleFonts to prevent Web crashes
 ThemeData buildTheme() {
   final base = ThemeData(
     colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
@@ -48,7 +44,6 @@ ThemeData buildTheme() {
     ),
   );
 
-  // Safe Google Fonts loading with fallback for Web
   try {
     final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
     return base.copyWith(
@@ -59,19 +54,17 @@ ThemeData buildTheme() {
     );
   } catch (e) {
     debugPrint('⚠️ [THEME] GoogleFonts failed to load, using fallback: $e');
-    // Return base theme with manual Arabic font if GoogleFonts fails
     return base.copyWith(
       textTheme: base.textTheme.apply(
         bodyColor: AppColors.darkText,
         displayColor: AppColors.darkText,
-        fontFamily: 'Arial', // Fallback font for Arabic
+        fontFamily: 'Arial',
       ),
     );
   }
 }
 
 Future<void> main() async {
-  // Global error handler to catch initialization errors before widget tree is built
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint('═══════════════════════════════════════════════════');
@@ -88,6 +81,13 @@ Future<void> main() async {
   debugPrint('🚀 [MAIN] Starting Mawjood initialization...');
   debugPrint('🌐 [MAIN] Platform: ${kIsWeb ? "WEB" : "MOBILE"}');
 
+  try {
+    await dotenv.load(fileName: ".env");
+    debugPrint('✅ [MAIN] .env file loaded successfully');
+  } catch (e) {
+    debugPrint('❌ [MAIN] Error loading .env file: $e');
+  }
+
   final initFuture = SupabaseService.initialize();
 
   try {
@@ -100,8 +100,16 @@ Future<void> main() async {
   }
 
   debugPrint('🎬 [MAIN] Running app...');
-  runApp(MawjoodBootstrap(initFuture: initFuture));
+  runApp(
+    ProviderScope(
+      child: MawjoodBootstrap(initFuture: initFuture),
+    ),
+  );
 }
+// ... (rest of the file remains the same)
+
+// ... (rest of the file remains the same)
+
 
 class MawjoodBootstrap extends StatefulWidget {
   const MawjoodBootstrap({super.key, required this.initFuture});
