@@ -1,11 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/business.dart';
 import '../models/filters.dart';
+import '../providers/filters_provider.dart';
+import '../providers/location_provider.dart';
+import '../providers/recent_searches_provider.dart';
 import '../repositories/business_repository.dart';
+import '../services/analytics_service.dart';
 import '../services/filter_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text.dart';
@@ -13,59 +18,63 @@ import '../widgets/business_card.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import 'business_detail_screen.dart';
 
-class SearchResultsScreen extends StatefulWidget {
+class SearchResultsScreen extends ConsumerStatefulWidget {
   const SearchResultsScreen({super.key, required this.initialQuery});
 
   final String initialQuery;
 
   @override
-  State<SearchResultsScreen> createState() => _SearchResultsScreenState();
+  ConsumerState<SearchResultsScreen> createState() => _SearchResultsScreenState();
 }
 
-class _SearchResultsScreenState extends State<SearchResultsScreen> {
+class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   late TextEditingController _controller;
   Timer? _debounce;
   final BusinessRepository _repository = BusinessRepository();
+  final AnalyticsService _analytics = AnalyticsService();
+
   List<Business> _results = [];
   List<Business> _filteredResults = [];
   String _currentQuery = '';
-  BusinessFilters _filters = BusinessFilters.defaults();
   bool _isLoading = false;
+  bool _isDebouncing = false;
   String? _errorMessage;
-  Position? _userLocation;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery);
     _currentQuery = widget.initialQuery;
+    _analytics.logScreenView('search_results_screen');
     _runSearch(widget.initialQuery);
-    _loadUserLocation();
-  }
-
-  Future<void> _loadUserLocation() async {
-    final location = await LocationService.getCurrentLocation();
-    setState(() {
-      _userLocation = location;
-    });
-    // Refresh results if sorting by nearest
-    if (_filters.sortBy == 'nearest' && _results.isNotEmpty) {
-      setState(() {
-        _filteredResults = applyFilters(_results, _filters, userLocation: _userLocation);
-      });
-    }
   }
 
   @override
   void dispose() {
+    // CRITICAL: Cancel timer before disposal to prevent memory leaks
     _debounce?.cancel();
+    _debounce = null;
     _controller.dispose();
     super.dispose();
   }
 
   void _onQueryChanged(String value) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
+    // CRITICAL: Cancel existing timer before creating new one
+    if (_debounce?.isActive ?? false) {
+      _debounce!.cancel();
+    }
+
+    // Show debouncing indicator
+    setState(() {
+      _isDebouncing = true;
+      _currentQuery = value;
+    });
+
+    // Increased to 500ms for better Arabic typing experience
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        _isDebouncing = false;
+      });
       _runSearch(value);
     });
   }
@@ -92,12 +101,29 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
     try {
       final results = await _repository.searchBusinesses(trimmed);
+
+      // Get user location and filters from providers
+      final userLocationAsync = ref.read(userLocationProvider);
+      final filters = ref.read(filtersProvider);
+      Position? userLocation;
+
+      userLocationAsync.whenData((location) {
+        userLocation = location;
+      });
+
+      // Log search event
+      _analytics.logSearch(trimmed, resultCount: results.length);
+
+      // Add to recent searches
+      ref.read(recentSearchesProvider.notifier).addSearch(trimmed);
+
       setState(() {
         _results = results;
-        _filteredResults = applyFilters(_results, _filters, userLocation: _userLocation);
+        _filteredResults = applyFilters(_results, filters, userLocation: userLocation);
         _isLoading = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _analytics.logError(error, stackTrace, reason: 'Search failed');
       setState(() {
         _isLoading = false;
         _errorMessage = 'تعذر تحميل نتائج البحث حالياً';
@@ -106,7 +132,13 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   void _onSubmit(String value) {
-    _debounce?.cancel();
+    // CRITICAL: Cancel debounce timer on submit
+    if (_debounce?.isActive ?? false) {
+      _debounce!.cancel();
+    }
+    setState(() {
+      _isDebouncing = false;
+    });
     _runSearch(value);
   }
 
@@ -115,6 +147,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   void _openFilters() async {
+    final currentFilters = ref.read(filtersProvider);
+
     final result = await showModalBottomSheet<BusinessFilters>(
       context: context,
       isScrollControlled: true,
@@ -122,7 +156,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => FilterBottomSheet(
-        currentFilters: _filters,
+        currentFilters: currentFilters,
         onApply: (updatedFilters) {
           Navigator.of(context).pop(updatedFilters);
         },
@@ -130,9 +164,25 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     );
 
     if (result != null) {
+      // Update filters in provider
+      ref.read(filtersProvider.notifier).applyFilters(result);
+
+      // Log filter application
+      _analytics.logFilterApplied(
+        sortBy: result.sortBy,
+        minRating: result.minRating,
+        tags: result.tags,
+      );
+
+      // Re-apply filters to results
+      final userLocationAsync = ref.read(userLocationProvider);
+      Position? userLocation;
+      userLocationAsync.whenData((location) {
+        userLocation = location;
+      });
+
       setState(() {
-        _filters = result;
-        _filteredResults = applyFilters(_results, _filters, userLocation: _userLocation);
+        _filteredResults = applyFilters(_results, result, userLocation: userLocation);
       });
     }
   }
@@ -143,6 +193,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     final trimmedQuery = _currentQuery.trim();
     final hasQuery = trimmedQuery.isNotEmpty;
     final hasResults = _filteredResults.isNotEmpty;
+    final filters = ref.watch(filtersProvider);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -173,15 +224,33 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  hasQuery
-                      ? '${AppText.searchResultsFor}: $trimmedQuery'
-                      : AppText.searchDetailedHint,
-                  textAlign: TextAlign.right,
-                  style: textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 20,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        hasQuery
+                            ? '${AppText.searchResultsFor}: $trimmedQuery'
+                            : AppText.searchDetailedHint,
+                        textAlign: TextAlign.right,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    // Debouncing indicator
+                    if (_isDebouncing) ...[
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary.withOpacity(0.6)),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 8),
                 if (hasQuery)
@@ -202,7 +271,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                       color: AppColors.primaryLight.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: _filters.hasActiveFilters
+                        color: filters.hasActiveFilters
                             ? AppColors.primary.withOpacity(0.3)
                             : Colors.transparent,
                         width: 1.5,
@@ -224,7 +293,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                             color: AppColors.darkText,
                           ),
                         ),
-                        if (_filters.hasActiveFilters) ...[
+                        if (filters.hasActiveFilters) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -233,7 +302,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              '${_filters.activeCount}',
+                              '${filters.activeCount}',
                               style: textTheme.labelSmall?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
@@ -313,6 +382,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             business: business,
             categoryLabel: business.city,
             onTap: () {
+              _analytics.logBusinessView(business.id, business.name);
+              _analytics.logNavigation('search_results_screen', 'business_detail_screen');
               Navigator.push(
                 context,
                 MaterialPageRoute(

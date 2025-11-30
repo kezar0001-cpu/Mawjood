@@ -1,20 +1,26 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'firebase_options.dart';
+import 'models/business.dart';
+import 'models/category.dart';
 import 'screens/business_detail_screen.dart';
 import 'screens/business_list_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
+import 'services/analytics_service.dart';
+import 'services/cache_service.dart';
+import 'services/connectivity_service.dart';
 import 'services/supabase_service.dart';
-import 'models/business.dart';
-import 'models/category.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_text.dart';
+import 'widgets/offline_indicator.dart';
 
 // FIXED: Added error handling for GoogleFonts to prevent Web crashes
 ThemeData buildTheme() {
@@ -251,8 +257,8 @@ class _MawjoodAppState extends State<MawjoodApp> {
       // FIXED: Use const constructors for better performance and Web stability
       routes: {
         OnboardingScreen.routeName: (_) => const OnboardingScreen(),
-        HomeScreen.routeName: (_) => const HomeScreen(),
-        SearchScreen.routeName: (_) => const SearchScreen(),
+        HomeScreen.routeName: (_) => OfflineIndicator(child: const HomeScreen()),
+        SearchScreen.routeName: (_) => OfflineIndicator(child: const SearchScreen()),
         SettingsScreen.routeName: (_) => const SettingsScreen(),
       },
       onGenerateRoute: (settings) {
@@ -260,9 +266,11 @@ class _MawjoodAppState extends State<MawjoodApp> {
           final args = settings.arguments;
           if (args is Map<String, dynamic> && args['category'] is Category) {
             return MaterialPageRoute(
-              builder: (_) => BusinessListScreen(
-                category: args['category'] as Category,
-                businesses: args['businesses'] as List<Business>?,
+              builder: (_) => OfflineIndicator(
+                child: BusinessListScreen(
+                  category: args['category'] as Category,
+                  businesses: args['businesses'] as List<Business>?,
+                ),
               ),
             );
           }

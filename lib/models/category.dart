@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+
+part 'category.g.dart';
 
 @immutable
+@HiveType(typeId: 1)
 class Category {
+  @HiveField(0)
   final String id;
+
+  @HiveField(1)
   final String nameAr;
+
+  @HiveField(2)
   final String nameEn;
+
+  @HiveField(3)
   final String? icon;
 
   const Category({

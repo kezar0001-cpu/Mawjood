@@ -1,25 +1,66 @@
 import 'package:flutter/foundation.dart';
+import 'package:hive/hive.dart';
+
+part 'business.g.dart';
 
 @immutable
+@HiveType(typeId: 0)
 class Business {
+  @HiveField(0)
   final String id;
+
+  @HiveField(1)
   final String name;
+
+  @HiveField(2)
   final String? description;
+
+  @HiveField(3)
   final String? address;
+
+  @HiveField(4)
   final String? phone;
+
+  @HiveField(5)
   final String? whatsapp;
+
+  @HiveField(6)
   final String? city;
+
+  @HiveField(7)
   final String? category;
+
+  @HiveField(8)
   final double? rating;
+
+  @HiveField(9)
   final int? popularScore;
+
+  @HiveField(10)
   final String? categoryId;
+
+  @HiveField(11)
   final double? latitude;
+
+  @HiveField(12)
   final double? longitude;
+
+  @HiveField(13)
   final List<String> images;
+
+  @HiveField(14)
   final List<String> features;
+
+  @HiveField(15)
   final int reviewCount;
+
+  @HiveField(16)
   final bool verified;
+
+  @HiveField(17)
   final String? ownerId;
+
+  @HiveField(18)
   final double? distanceKm; // Distance from user's location
 
   Business({
