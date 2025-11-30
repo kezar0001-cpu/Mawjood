@@ -1,4 +1,4 @@
-import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +22,7 @@ import 'utils/app_colors.dart';
 import 'utils/app_text.dart';
 import 'widgets/offline_indicator.dart';
 
+// FIXED: Added error handling for GoogleFonts to prevent Web crashes
 ThemeData buildTheme() {
   final base = ThemeData(
     colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
@@ -47,44 +48,144 @@ ThemeData buildTheme() {
     ),
   );
 
-  return base.copyWith(
-    textTheme: GoogleFonts.cairoTextTheme(base.textTheme).apply(
-      bodyColor: AppColors.darkText,
-      displayColor: AppColors.darkText,
-    ),
-  );
+  // Safe Google Fonts loading with fallback for Web
+  try {
+    final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
+    return base.copyWith(
+      textTheme: googleFontsTheme.apply(
+        bodyColor: AppColors.darkText,
+        displayColor: AppColors.darkText,
+      ),
+    );
+  } catch (e) {
+    debugPrint('⚠️ [THEME] GoogleFonts failed to load, using fallback: $e');
+    // Return base theme with manual Arabic font if GoogleFonts fails
+    return base.copyWith(
+      textTheme: base.textTheme.apply(
+        bodyColor: AppColors.darkText,
+        displayColor: AppColors.darkText,
+        fontFamily: 'Arial', // Fallback font for Arabic
+      ),
+    );
+  }
 }
 
 Future<void> main() async {
+  // Global error handler to catch initialization errors before widget tree is built
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('═══════════════════════════════════════════════════');
+    debugPrint('Flutter Error Caught:');
+    debugPrint('Error: ${details.exception}');
+    debugPrint('Stack: ${details.stack}');
+    debugPrint('Library: ${details.library}');
+    debugPrint('Context: ${details.context}');
+    debugPrint('═══════════════════════════════════════════════════');
+  };
+
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase
-  await SupabaseService.initialize();
+  debugPrint('🚀 [MAIN] Starting Mawjood initialization...');
+  debugPrint('🌐 [MAIN] Platform: ${kIsWeb ? "WEB" : "MOBILE"}');
 
-  // Initialize Firebase (with error handling for missing config)
+  final initFuture = SupabaseService.initialize();
+
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
-    debugPrint('Firebase Analytics and Crashlytics will not be available.');
+    debugPrint('⏳ [MAIN] Waiting for Supabase initialization...');
+    await initFuture;
+    debugPrint('✅ [MAIN] Supabase initialization completed successfully');
+  } catch (e, stackTrace) {
+    debugPrint('❌ [MAIN] Supabase initialization error: $e');
+    debugPrint('Stack trace: $stackTrace');
   }
 
-  // Initialize Hive cache
-  await CacheService.initialize();
+  debugPrint('🎬 [MAIN] Running app...');
+  runApp(MawjoodBootstrap(initFuture: initFuture));
+}
 
-  // Initialize connectivity service
-  await ConnectivityService().initialize();
+class MawjoodBootstrap extends StatefulWidget {
+  const MawjoodBootstrap({super.key, required this.initFuture});
 
-  // Initialize analytics service
-  await AnalyticsService().initialize();
+  final Future<void> initFuture;
 
-  runApp(
-    const ProviderScope(
-      child: MawjoodApp(),
-    ),
-  );
+  @override
+  State<MawjoodBootstrap> createState() => _MawjoodBootstrapState();
+}
+
+class _MawjoodBootstrapState extends State<MawjoodBootstrap> {
+  late Future<void> _initFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture = widget.initFuture;
+  }
+
+  void _retryInitialization() {
+    setState(() {
+      _initFuture = SupabaseService.initialize();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: buildTheme(),
+            home: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Scaffold(
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off, size: 48, color: AppColors.primary),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'تعذر تهيئة التطبيق',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          snapshot.error.toString(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _retryInitialization,
+                          child: const Text('إعادة المحاولة'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return const MawjoodApp();
+      },
+    );
+  }
 }
 
 class MawjoodApp extends StatefulWidget {
@@ -101,17 +202,31 @@ class _MawjoodAppState extends State<MawjoodApp> {
   @override
   void initState() {
     super.initState();
+    debugPrint('📱 [APP] MawjoodApp initState called');
     _checkOnboardingStatus();
   }
 
   Future<void> _checkOnboardingStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+    debugPrint('🔍 [APP] Checking onboarding status...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
 
-    setState(() {
-      _hasSeenOnboarding = hasSeenOnboarding;
-      _isLoading = false;
-    });
+      debugPrint('✓ [APP] Onboarding status: ${hasSeenOnboarding ? "completed" : "not shown"}');
+
+      setState(() {
+        _hasSeenOnboarding = hasSeenOnboarding;
+        _isLoading = false;
+      });
+
+      debugPrint('📍 [APP] Will navigate to: ${hasSeenOnboarding ? "HomeScreen" : "OnboardingScreen"}');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [APP] Error checking onboarding status: $e');
+      debugPrint('Stack: $stackTrace');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -139,6 +254,7 @@ class _MawjoodAppState extends State<MawjoodApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       initialRoute: _hasSeenOnboarding ? HomeScreen.routeName : OnboardingScreen.routeName,
+      // FIXED: Use const constructors for better performance and Web stability
       routes: {
         OnboardingScreen.routeName: (_) => const OnboardingScreen(),
         HomeScreen.routeName: (_) => OfflineIndicator(child: const HomeScreen()),
@@ -160,15 +276,18 @@ class _MawjoodAppState extends State<MawjoodApp> {
           }
         }
         if (settings.name == BusinessDetailScreen.routeName) {
-          final args = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (_) => OfflineIndicator(
-              child: BusinessDetailScreen(
-                businessId: args['businessId'] as String,
-                initialBusiness: args['business'] as Business?,
-              ),
-            ),
-          );
+          final args = settings.arguments;
+          if (args is Map<String, dynamic>) {
+            final businessId = args['businessId'];
+            if (businessId is String) {
+              return MaterialPageRoute(
+                builder: (_) => BusinessDetailScreen(
+                  businessId: businessId,
+                  initialBusiness: args['business'] as Business?,
+                ),
+              );
+            }
+          }
         }
         return null;
       },

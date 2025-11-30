@@ -61,7 +61,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   }
 
   Future<void> _submitReview() async {
-    if (!_formKey.currentState!.validate()) return;
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
 
     setState(() {
       _isSubmitting = true;
@@ -315,10 +316,10 @@ class _ReviewCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (review.comment != null && review.comment!.isNotEmpty) ...[
+            if (review.comment != null && (review.comment?.isNotEmpty ?? false)) ...[
               const SizedBox(height: 12),
               Text(
-                review.comment!,
+                review.comment ?? '',
                 style: const TextStyle(fontSize: 14),
               ),
             ],

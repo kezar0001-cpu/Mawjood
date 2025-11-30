@@ -24,9 +24,10 @@ class BusinessCard extends StatelessWidget {
     final theme = Theme.of(context).textTheme;
     final imageUrl = business.primaryImage;
     final safeCity = business.city ?? '';
+    // FIXED: Removed dangerous null-check operator (!) for Web compatibility
     final locationLabel = safeCity.isNotEmpty
         ? safeCity
-        : (categoryLabel != null && categoryLabel!.isNotEmpty ? categoryLabel! : 'متاح');
+        : (categoryLabel?.isNotEmpty == true ? categoryLabel ?? 'متاح' : 'متاح');
 
     return Card(
       elevation: 3,
@@ -156,9 +157,9 @@ class BusinessCard extends StatelessWidget {
                                   const Icon(Icons.navigation, size: 12, color: AppColors.primary),
                                   const SizedBox(width: 4),
                                   Text(
-                                    business.distanceKm! < 1
-                                        ? '${(business.distanceKm! * 1000).toStringAsFixed(0)} م'
-                                        : '${business.distanceKm!.toStringAsFixed(1)} كم',
+                                    (business.distanceKm ?? 0) < 1
+                                        ? '${((business.distanceKm ?? 0) * 1000).toStringAsFixed(0)} م'
+                                        : '${(business.distanceKm ?? 0).toStringAsFixed(1)} كم',
                                     style: theme.labelSmall?.copyWith(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.w700,

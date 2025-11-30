@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,7 +29,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _analytics.logScreenView('home_screen');
+    debugPrint('🏠 [HOME] initState called - fetching categories...');
+    _categoriesFuture = _categoryRepository.fetchAll();
   }
 
   @override
@@ -145,10 +147,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   /// Premium-styled grid of category cards with consistent breathing room.
   Widget _buildCategoryGrid() {
-    final categoriesAsync = ref.watch(categoriesProvider);
+    return FutureBuilder<List<Category>>(
+      future: _categoriesFuture,
+      builder: (context, snapshot) {
+        debugPrint('🏠 [HOME] FutureBuilder state: ${snapshot.connectionState}');
 
-    return categoriesAsync.when(
-      data: (categories) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          debugPrint('🏠 [HOME] Waiting for categories...');
+          return const _CategoryShimmerGrid();
+        }
+
+        if (snapshot.hasError) {
+          debugPrint('❌ [HOME] Error loading categories: ${snapshot.error}');
+          debugPrint('Stack: ${snapshot.stackTrace}');
+          return _ErrorBanner(
+            message: 'تعذر تحميل التصنيفات من الخادم\n${snapshot.error}',
+          );
+        }
+
+        final categories = snapshot.data ?? [];
+        debugPrint('✅ [HOME] Categories loaded: ${categories.length} items');
+
         if (categories.isEmpty) {
           return const _ErrorBanner(message: 'لا توجد تصنيفات متاحة حالياً');
         }
@@ -310,7 +329,7 @@ class _HomeHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Text(
                 AppText.appName,
                 textAlign: TextAlign.center,

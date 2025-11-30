@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 
 import '../config/env_config.dart';
 import '../models/business.dart';
@@ -8,41 +8,113 @@ import '../models/review.dart';
 import '../models/business_claim.dart';
 
 class SupabaseService {
-  static SupabaseClient get client => Supabase.instance.client;
+  // Track initialization state to avoid accessing uninitialized instance
+  static bool _isInitialized = false;
+
+  /// Safe getter for Supabase client with null-safety checks
+  /// This prevents "Null check operator used on a null value" errors on Web
+  static SupabaseClient get client {
+    if (!_isInitialized) {
+      debugPrint('❌ [SUPABASE] Attempting to access client before initialization');
+      throw StateError(
+        'Supabase has not been initialized. '
+        'Call SupabaseService.initialize() and wait for it to complete '
+        'before accessing the client.',
+      );
+    }
+
+    try {
+      // Access Supabase.instance only after we know it's initialized
+      final instance = Supabase.instance;
+      final supabaseClient = instance.client;
+
+      return supabaseClient;
+    } catch (e) {
+      debugPrint('❌ [SUPABASE] Error accessing client: $e');
+      debugPrint('This usually means Supabase.initialize() failed or was not called.');
+      rethrow;
+    }
+  }
+
+  /// Check if Supabase has been initialized
+  static bool get isInitialized => _isInitialized;
 
   static Future<void> initialize() async {
+    debugPrint('🔧 [SUPABASE] Starting initialization...');
+    debugPrint('🌐 [SUPABASE] Platform: ${kIsWeb ? "WEB" : "MOBILE"}');
+
     // Validate configuration before initializing
     final configError = EnvConfig.configurationError;
     if (configError != null) {
+      debugPrint('❌ [SUPABASE] Configuration error: $configError');
       throw Exception('Supabase configuration error: $configError');
     }
 
-    // Initialize with absolute URL - NEVER use relative paths
+    debugPrint('✓ [SUPABASE] Configuration validated');
 
-await Supabase.initialize(
-  url: kIsWeb
-      ? 'https://yywjdkunrkakxwgdwsjz.supabase.co'     // FULL STATIC URL FOR WEB
-      : EnvConfig.supabaseUrl,                  // Safe for mobile
-  anonKey: kIsWeb
-      ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5d2pka3Vucmtha3h3Z2R3c2p6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjQwMjYsImV4cCI6MjA3OTkwMDAyNn0.TjviqrZWd1wUnTFS8YpbXDrH3BfidpmgQkgALZQNzs4'                  // FULL STATIC KEY FOR WEB
-      : EnvConfig.supabaseAnonKey,
-);
+    final url = kIsWeb
+        ? 'https://yywjdkunrkakxwgdwsjz.supabase.co'
+        : EnvConfig.supabaseUrl;
+
+    final anonKey = kIsWeb
+        ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5d2pka3Vucmtha3h3Z2R3c2p6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjQwMjYsImV4cCI6MjA3OTkwMDAyNn0.TjviqrZWd1wUnTFS8YpbXDrH3BfidpmgQkgALZQNzs4'
+        : EnvConfig.supabaseAnonKey;
+
+    debugPrint('🔗 [SUPABASE] URL: $url');
+    debugPrint('🔑 [SUPABASE] AnonKey: ${anonKey.substring(0, 20)}...');
+
+    try {
+      // Initialize with absolute URL - NEVER use relative paths
+      await Supabase.initialize(
+        url: url,
+        anonKey: anonKey,
+      );
+
+      // Mark as initialized only after successful completion
+      _isInitialized = true;
+
+      debugPrint('✅ [SUPABASE] Initialization successful');
+      debugPrint('✓ [SUPABASE] Client ready: ${isInitialized}');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [SUPABASE] Initialization failed: $e');
+      debugPrint('Stack: $stackTrace');
+
+      // Ensure flag remains false on failure
+      _isInitialized = false;
+
+      rethrow;
+    }
   }
 
   static Future<List<Category>> getCategories() async {
+    debugPrint('📂 [SUPABASE] getCategories called');
+
+    if (!_isInitialized) {
+      debugPrint('⚠️ [SUPABASE] getCategories called before initialization');
+      return [];
+    }
+
     try {
       final response =
           await client.from('categories').select().order('name_ar', ascending: true);
       if (response is List) {
+        debugPrint('✅ [SUPABASE] Fetched ${response.length} categories');
         return response.map((item) => Category.fromMap(item)).toList();
       }
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [SUPABASE] Error fetching categories: $e');
+      debugPrint('Stack: $stackTrace');
       return [];
     }
     return [];
   }
 
   static Future<List<Business>> getBusinessesByCategory(String categoryId) async {
+    if (!_isInitialized) {
+      debugPrint('⚠️ [SUPABASE] getBusinessesByCategory called before initialization');
+      return [];
+    }
+
     try {
       final response = await client
           .from('businesses')
@@ -52,7 +124,8 @@ await Supabase.initialize(
       if (response is List) {
         return response.map((item) => Business.fromMap(item)).toList();
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('❌ [SUPABASE] Error fetching businesses: $e');
       return [];
     }
     return [];
@@ -61,6 +134,11 @@ await Supabase.initialize(
   static Future<List<Business>> searchBusinesses(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return [];
+
+    if (!_isInitialized) {
+      debugPrint('⚠️ [SUPABASE] searchBusinesses called before initialization');
+      return [];
+    }
 
     try {
       final response = await client
@@ -71,13 +149,19 @@ await Supabase.initialize(
       if (response is List) {
         return response.map((item) => Business.fromMap(item)).toList();
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('❌ [SUPABASE] Error searching businesses: $e');
       return [];
     }
     return [];
   }
 
   static Future<Business?> getBusinessById(String id) async {
+    if (!_isInitialized) {
+      debugPrint('⚠️ [SUPABASE] getBusinessById called before initialization');
+      return null;
+    }
+
     try {
       final response = await client
           .from('businesses')
@@ -89,8 +173,9 @@ await Supabase.initialize(
         // Get review count for this business
         final reviewCountResponse = await client
             .from('reviews')
-            .select('id', const FetchOptions(count: CountOption.exact))
-            .eq('business_id', id);
+            .select('id')
+            .eq('business_id', id)
+            .count(CountOption.exact);
 
         final reviewCount = reviewCountResponse.count ?? 0;
 
@@ -99,7 +184,8 @@ await Supabase.initialize(
 
         return Business.fromMap(response);
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('❌ [SUPABASE] Error fetching business by ID: $e');
       return null;
     }
     return null;
