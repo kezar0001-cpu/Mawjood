@@ -17,9 +17,9 @@ class AppTheme {
       titleLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark),
       bodyLarge: TextStyle(fontSize: 16, color: textDark),
       bodyMedium: TextStyle(fontSize: 14, color: textDark),
-      labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-      // Fallback for legacy widgets
-      button: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+      labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textDark),
+      labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark),
+      labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textDark),
     );
 
     // 2. Safely apply Google Fonts
