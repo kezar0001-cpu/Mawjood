@@ -196,36 +196,32 @@ class _OnboardingPageWidget extends StatelessWidget {
           ),
           const SizedBox(height: 48),
           // Title
-          Builder(
-            builder: (context) {
-              final theme = Theme.of(context);
-              if (theme.textTheme.headlineSmall == null) {
-                 debugPrint('❌ [ONBOARDING] Theme.of(context).textTheme.headlineSmall is NULL');
-                 return Text(page.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
-              }
-              return Text(
-                page.title,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall!.copyWith(
+          Text(
+            page.title,
+            textAlign: TextAlign.center,
+            style: (Theme.of(context).textTheme.headlineSmall ?? const TextStyle(fontSize: 24)).copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.darkText,
                 ),
-              );
-            }
           ),
           const SizedBox(height: 16),
           // Description
           Builder(
             builder: (context) {
               final theme = Theme.of(context);
-              if (theme.textTheme.bodyLarge == null) {
+              final bodyStyle = theme.textTheme.bodyLarge;
+              if (bodyStyle == null) {
                  debugPrint('❌ [ONBOARDING] Theme.of(context).textTheme.bodyLarge is NULL');
-                 return Text(page.description, textAlign: TextAlign.center);
+                 return Text(
+                   page.description,
+                   textAlign: TextAlign.center,
+                   style: const TextStyle(color: Colors.black54, height: 1.5, fontSize: 16),
+                 );
               }
               return Text(
                 page.description,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge!.copyWith(
+                style: bodyStyle.copyWith(
                   color: Colors.black54,
                   height: 1.5,
                 ),
