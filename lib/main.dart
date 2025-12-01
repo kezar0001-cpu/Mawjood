@@ -45,15 +45,13 @@ ThemeData buildTheme() {
   );
 
   try {
-    // TEMPORARY: Disable Google Fonts to debug crash
-    // final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
-    // return base.copyWith(
-    //   textTheme: googleFontsTheme.apply(
-    //     bodyColor: AppColors.darkText,
-    //     displayColor: AppColors.darkText,
-    //   ),
-    // );
-    throw Exception('Skipping Google Fonts for debugging');
+    final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
+    return base.copyWith(
+      textTheme: googleFontsTheme.apply(
+        bodyColor: AppColors.darkText,
+        displayColor: AppColors.darkText,
+      ),
+    );
   } catch (e) {
     debugPrint('⚠️ [THEME] GoogleFonts failed to load, using fallback: $e');
     return base.copyWith(
@@ -264,12 +262,11 @@ class _MawjoodAppState extends State<MawjoodApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       initialRoute: _hasSeenOnboarding ? HomeScreen.routeName : OnboardingScreen.routeName,
-      // FIXED: Use const constructors for better performance and Web stability
       routes: {
-        OnboardingScreen.routeName: (_) => const OnboardingScreen(),
-        HomeScreen.routeName: (_) => OfflineIndicator(child: const HomeScreen()),
-        SearchScreen.routeName: (_) => OfflineIndicator(child: const SearchScreen()),
-        SettingsScreen.routeName: (_) => const SettingsScreen(),
+        OnboardingScreen.routeName: (context) => const OnboardingScreen(),
+        HomeScreen.routeName: (context) => OfflineIndicator(child: const HomeScreen()),
+        SearchScreen.routeName: (context) => OfflineIndicator(child: const SearchScreen()),
+        SettingsScreen.routeName: (context) => const SettingsScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == BusinessListScreen.routeName) {
