@@ -25,6 +25,11 @@ class RecentSearchesNotifier extends StateNotifier<List<String>> {
     state = [];
   }
 
+  Future<void> removeSearch(String query) async {
+    await _cacheService.removeRecentSearch(query);
+    state = await _cacheService.getRecentSearches();
+  }
+
   Future<void> refresh() async {
     state = await _cacheService.getRecentSearches();
   }

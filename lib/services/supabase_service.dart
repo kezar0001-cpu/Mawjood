@@ -18,13 +18,13 @@ class SupabaseService {
 
   // Static factory to initialize and provide a configured instance (for main.dart)
   static Future<SupabaseService> initializeAndCreate() async {
-    debugPrint('🔧 [SUPABASE] Starting initialization...');
+    debugPrint('[SUPABASE] Starting initialization...');
 
     EnvConfig env;
     try {
       env = EnvConfig.load(); // Direct load for app startup
     } catch (e, s) {
-      debugPrint('❌ [SUPABASE] CRITICAL: Failed to load environment config: $e');
+      debugPrint('[SUPABASE] CRITICAL: Failed to load environment config: $e');
       debugPrint('Stack: $s');
       rethrow;
     }
@@ -32,13 +32,13 @@ class SupabaseService {
     final configError = env.configurationError;
 
     if (configError != null) {
-      debugPrint('❌ [SUPABASE] Configuration error found: "$configError"');
+      debugPrint('[SUPABASE] Configuration error found: "$configError"');
       throw Exception('Supabase configuration error: $configError');
     }
 
-    debugPrint('✓ [SUPABASE] Configuration validated');
-    debugPrint('🔗 [SUPABASE] URL: ${env.supabaseUrl}');
-    debugPrint('🔑 [SUPABASE] AnonKey: ${env.supabaseAnonKey.isNotEmpty ? "PRESENT" : "MISSING"}');
+    debugPrint('[SUPABASE] Configuration validated');
+    debugPrint('[SUPABASE] URL: ${env.supabaseUrl}');
+    debugPrint('[SUPABASE] AnonKey: ${env.supabaseAnonKey.isNotEmpty ? "PRESENT" : "MISSING"}');
 
     try {
       await Supabase.initialize(
@@ -48,10 +48,10 @@ class SupabaseService {
 
       final service = SupabaseService(Supabase.instance.client);
       service._isInitialized = true; // Mark this instance as initialized
-      debugPrint('✅ [SUPABASE] Initialization successful');
+      debugPrint('[SUPABASE] Initialization successful');
       return service;
     } catch (e, stackTrace) {
-      debugPrint('❌ [SUPABASE] Initialization failed: $e');
+      debugPrint('[SUPABASE] Initialization failed: $e');
       debugPrint('Stack: $stackTrace');
       rethrow;
     }
@@ -65,14 +65,14 @@ class SupabaseService {
   ) async {
     // Check initialization status of this specific instance
     if (!_isInitialized) {
-      debugPrint('⚠️ [SUPABASE] $methodName called before initialization');
+      debugPrint('[SUPABASE] $methodName called before initialization');
       throw StateError('SupabaseService instance not initialized.');
     }
     try {
       final response = await request;
       return response.map(fromMap).toList();
     } catch (e, stackTrace) {
-      debugPrint('❌ [SUPABASE] Error in $methodName: $e');
+      debugPrint('[SUPABASE] Error in $methodName: $e');
       debugPrint('Stack: $stackTrace');
       rethrow;
     }
@@ -107,7 +107,7 @@ class SupabaseService {
 
   Future<Business?> getBusinessById(String id) async {
     if (!_isInitialized) {
-      debugPrint('⚠️ [SUPABASE] getBusinessById called before initialization');
+      debugPrint('[SUPABASE] getBusinessById called before initialization');
       return null;
     }
     try {
@@ -118,7 +118,7 @@ class SupabaseService {
       response['review_count'] = reviewCountResponse.count ?? 0;
       return Business.fromMap(response);
     } catch (e, stackTrace) {
-      debugPrint('❌ [SUPABASE] Error fetching business by ID: $e');
+      debugPrint('[SUPABASE] Error fetching business by ID: $e');
       debugPrint('Stack: $stackTrace');
       rethrow;
     }
@@ -152,7 +152,7 @@ class SupabaseService {
       }).select().single();
       return Review.fromMap(response);
     } catch (e, stackTrace) {
-      debugPrint('❌ [SUPABASE] Error submitting review: $e');
+      debugPrint('[SUPABASE] Error submitting review: $e');
       debugPrint('Stack: $stackTrace');
       rethrow;
     }
@@ -172,7 +172,7 @@ class SupabaseService {
         'comment': comment,
       }).eq('id', reviewId).eq('user_id', userId);
     } catch (e, stackTrace) {
-      debugPrint('❌ [SUPABASE] Error updating review: $e');
+      debugPrint('[SUPABASE] Error updating review: $e');
       debugPrint('Stack: $stackTrace');
       rethrow;
     }
@@ -185,7 +185,7 @@ class SupabaseService {
     try {
       await _client.from('reviews').delete().eq('id', reviewId).eq('user_id', userId);
     } catch (e, stackTrace) {
-      debugPrint('❌ [SUPABASE] Error deleting review: $e');
+      debugPrint('[SUPABASE] Error deleting review: $e');
       debugPrint('Stack: $stackTrace');
       rethrow;
     }
@@ -212,7 +212,7 @@ class SupabaseService {
       }).select().single();
       return BusinessClaim.fromMap(response);
     } catch (e, stackTrace) {
-      debugPrint('❌ [SUPABASE] Error submitting business claim: $e');
+      debugPrint('[SUPABASE] Error submitting business claim: $e');
       debugPrint('Stack: $stackTrace');
       rethrow;
     }
@@ -233,7 +233,7 @@ class SupabaseService {
       if (response == null) return null;
       return BusinessClaim.fromMap(response);
     } catch (e, stackTrace) {
-      debugPrint('❌ [SUPABASE] Error getting business claim for user: $e');
+      debugPrint('[SUPABASE] Error getting business claim for user: $e');
       debugPrint('Stack: $stackTrace');
       rethrow;
     }

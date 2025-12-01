@@ -88,8 +88,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   trailing: IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () {
-                      // Implement removal of single search if needed, or clear all
-                      // For simplicity now, clearing all.
+                      ref.read(recentSearchesProvider.notifier).removeSearch(search);
                     },
                   ),
                 );

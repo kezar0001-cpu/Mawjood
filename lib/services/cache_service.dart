@@ -20,8 +20,12 @@ class CacheService {
     await Hive.initFlutter();
 
     // Register adapters
-    Hive.registerAdapter(BusinessAdapter());
-    Hive.registerAdapter(CategoryAdapter());
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(BusinessAdapter());
+    }
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(CategoryAdapter());
+    }
 
     // Open boxes
     await Hive.openBox<Category>('categories_cache');
@@ -181,6 +185,16 @@ class CacheService {
   Future<void> clearRecentSearches() async {
     final box = Hive.box<String>(_recentSearchesBox);
     await box.clear();
+  }
+
+  Future<void> removeRecentSearch(String query) async {
+    final box = Hive.box<String>(_recentSearchesBox);
+    final keysToDelete = box.keys
+        .where((key) => box.get(key) == query)
+        .toList();
+    if (keysToDelete.isNotEmpty) {
+      await box.deleteAll(keysToDelete);
+    }
   }
 
   // Helper: Store timestamp

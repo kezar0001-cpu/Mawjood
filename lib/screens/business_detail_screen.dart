@@ -412,6 +412,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
                               style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black87),
                             ),
                             const SizedBox(height: 16),
+                            final phoneAvailable = (business.phone ?? '').trim().isNotEmpty;
+                            final whatsappAvailable = (business.whatsapp ?? '').trim().isNotEmpty;
                             Row(
                               children: [
                                 Expanded(
@@ -419,6 +421,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
                                     icon: Icons.call_rounded,
                                     label: 'اتصال',
                                     onTap: _callBusiness,
+                                    enabled: phoneAvailable,
                                     backgroundColor: AppColors.primary.withOpacity(0.12),
                                     foregroundColor: AppColors.primary,
                                   ),
@@ -429,6 +432,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
                                     icon: Icons.chat_rounded,
                                     label: 'واتساب',
                                     onTap: _openWhatsApp,
+                                    enabled: whatsappAvailable,
                                     backgroundColor: AppColors.primaryLight.withOpacity(0.16),
                                     foregroundColor: AppColors.darkText,
                                   ),

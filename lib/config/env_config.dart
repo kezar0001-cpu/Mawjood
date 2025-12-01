@@ -16,7 +16,7 @@ class EnvConfig {
 
   /// Factory constructor to load configuration from .env file or Dart defines.
   factory EnvConfig.load() {
-    debugPrint('🔍 [ENV] EnvConfig.load() called');
+    debugPrint('[ENV] EnvConfig.load() called');
     
     String? url;
     String? key;
@@ -27,12 +27,12 @@ class EnvConfig {
       if (dotenv.isInitialized) {
          url = dotenv.env['SUPABASE_URL'];
          key = dotenv.env['SUPABASE_ANON_KEY'];
-         debugPrint('🔍 [ENV] Found values in dotenv: URL=${url != null}, Key=${key != null}');
+         debugPrint('[ENV] Found values in dotenv: URL=${url != null}, Key=${key != null}');
       } else {
-         debugPrint('ℹ️ [ENV] dotenv not initialized, skipping lookup');
+         debugPrint('[ENV] dotenv not initialized, skipping lookup');
       }
     } catch (e) {
-      debugPrint('⚠️ [ENV] Error accessing dotenv: $e');
+      debugPrint('[ENV] Error accessing dotenv: $e');
     }
 
     // 2. Fallback to Dart Defines (Compiler flags)
@@ -40,7 +40,7 @@ class EnvConfig {
       const dartUrl = String.fromEnvironment('SUPABASE_URL');
       if (dartUrl.isNotEmpty) {
         url = dartUrl;
-        debugPrint('🔍 [ENV] Found SUPABASE_URL in dart-define');
+        debugPrint('[ENV] Found SUPABASE_URL in dart-define');
       }
     }
 
@@ -48,7 +48,7 @@ class EnvConfig {
       const dartKey = String.fromEnvironment('SUPABASE_ANON_KEY');
       if (dartKey.isNotEmpty) {
         key = dartKey;
-        debugPrint('🔍 [ENV] Found SUPABASE_ANON_KEY in dart-define');
+        debugPrint('[ENV] Found SUPABASE_ANON_KEY in dart-define');
       }
     }
 

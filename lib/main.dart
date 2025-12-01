@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'config/theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/startup_error_screen.dart';
 import 'services/cache_service.dart';
 import 'services/supabase_service.dart';
 
@@ -35,7 +36,16 @@ Future<void> main() async {
   }
 
   final cacheService = await CacheService.create();
-  final supabaseService = await SupabaseService.initializeAndCreate();
+  SupabaseService? supabaseService;
+  String? startupError;
+
+  try {
+    supabaseService = await SupabaseService.initializeAndCreate();
+  } catch (e, stackTrace) {
+    startupError = 'Supabase is not configured correctly. Please set SUPABASE_URL and SUPABASE_ANON_KEY in .env or dart-define.';
+    debugPrint('[MAIN] Supabase init failed: $e');
+    debugPrint('[MAIN] Stack: $stackTrace');
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final onboardingCompleted = prefs.getBool('onboardingCompleted') ?? false;
@@ -43,18 +53,27 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [
-        supabaseServiceProvider.overrideWithValue(supabaseService),
+        if (supabaseService != null)
+          supabaseServiceProvider.overrideWithValue(supabaseService),
         cacheServiceProvider.overrideWithValue(cacheService),
       ],
-      child: MawjoodApp(onboardingCompleted: onboardingCompleted),
+      child: MawjoodApp(
+        onboardingCompleted: onboardingCompleted,
+        startupError: startupError,
+      ),
     ),
   );
 }
 
 class MawjoodApp extends StatelessWidget {
-  const MawjoodApp({super.key, required this.onboardingCompleted});
+  const MawjoodApp({
+    super.key,
+    required this.onboardingCompleted,
+    this.startupError,
+  });
 
   final bool onboardingCompleted;
+  final String? startupError;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +88,11 @@ class MawjoodApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: onboardingCompleted ? const HomeScreen() : const OnboardingScreen(),
+      home: startupError != null
+          ? StartupErrorScreen(message: startupError!)
+          : onboardingCompleted
+              ? const HomeScreen()
+              : const OnboardingScreen(),
     );
   }
 }
