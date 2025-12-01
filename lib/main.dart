@@ -95,8 +95,8 @@ class _MawjoodAppState extends State<MawjoodApp> {
       title: AppText.appName,
       debugShowCheckedModeBanner: false,
       
-      // ✅ TEMPORARILY DISABLE CUSTOM THEME TO ISOLATE CRASH
-      // theme: AppTheme.lightTheme,
+      // ✅ USE THE SAFE THEME
+      theme: AppTheme.lightTheme,
       
       // ✅ RTL SUPPORT
       locale: const Locale('ar'),
