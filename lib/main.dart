@@ -261,6 +261,22 @@ class _MawjoodAppState extends State<MawjoodApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // Add a builder to inspect the theme and catch errors globally
+      builder: (context, child) {
+        if (child == null) return const SizedBox.shrink();
+        
+        // Safety check for Theme
+        try {
+          final theme = Theme.of(context);
+          if (theme.textTheme.bodyMedium == null) {
+             debugPrint('⚠️ [MAIN] Theme.of(context).textTheme.bodyMedium is null in MaterialApp builder');
+          }
+        } catch (e) {
+          debugPrint('⚠️ [MAIN] Error accessing Theme in MaterialApp builder: $e');
+        }
+        
+        return child;
+      },
       initialRoute: _hasSeenOnboarding ? HomeScreen.routeName : OnboardingScreen.routeName,
       routes: {
         OnboardingScreen.routeName: (context) => const OnboardingScreen(),
