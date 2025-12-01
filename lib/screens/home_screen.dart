@@ -29,8 +29,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint('🏠 [HOME] initState called - fetching categories...');
-    _categoriesFuture = _categoryRepository.fetchAll();
+    debugPrint('🏠 [HOME] initState called - categories will be fetched via Riverpod.');
   }
 
   @override
@@ -147,25 +146,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   /// Premium-styled grid of category cards with consistent breathing room.
   Widget _buildCategoryGrid() {
-    return FutureBuilder<List<Category>>(
-      future: _categoriesFuture,
-      builder: (context, snapshot) {
-        debugPrint('🏠 [HOME] FutureBuilder state: ${snapshot.connectionState}');
+    final categoriesAsyncValue = ref.watch(categoriesProvider);
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          debugPrint('🏠 [HOME] Waiting for categories...');
-          return const _CategoryShimmerGrid();
-        }
-
-        if (snapshot.hasError) {
-          debugPrint('❌ [HOME] Error loading categories: ${snapshot.error}');
-          debugPrint('Stack: ${snapshot.stackTrace}');
-          return _ErrorBanner(
-            message: 'تعذر تحميل التصنيفات من الخادم\n${snapshot.error}',
-          );
-        }
-
-        final categories = snapshot.data ?? [];
+    return categoriesAsyncValue.when(
+      data: (categories) {
         debugPrint('✅ [HOME] Categories loaded: ${categories.length} items');
 
         if (categories.isEmpty) {
@@ -206,10 +190,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           },
         );
       },
-      loading: () => const _CategoryShimmerGrid(),
+      loading: () {
+        debugPrint('🏠 [HOME] Waiting for categories...');
+        return const _CategoryShimmerGrid();
+      },
       error: (error, stack) {
+        debugPrint('❌ [HOME] Error loading categories: $error');
+        debugPrint('Stack: $stack');
         _analytics.logError(error, stack, reason: 'Failed to load categories');
-        return const _ErrorBanner(message: 'تعذر تحميل التصنيفات من الخادم');
+        return _ErrorBanner(
+          message: 'تعذر تحميل التصنيفات من الخادم\n${error.toString()}',
+        );
       },
     );
   }

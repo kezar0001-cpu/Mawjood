@@ -9,7 +9,7 @@ List<Business> searchBusinessesLocally(String query, {List<Business>? all}) {
   final businesses = all ?? mockBusinesses;
   return businesses.where((business) {
     return business.name.toLowerCase().contains(lowerQuery) ||
-        business.description.toLowerCase().contains(lowerQuery) ||
-        business.city.toLowerCase().contains(lowerQuery);
+        (business.description?.toLowerCase() ?? '').contains(lowerQuery) ||
+        (business.city?.toLowerCase() ?? '').contains(lowerQuery);
   }).toList();
 }

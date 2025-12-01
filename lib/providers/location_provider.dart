@@ -12,7 +12,7 @@ final userLocationProvider = FutureProvider<Position?>((ref) async {
   final locationService = ref.watch(locationServiceProvider);
 
   try {
-    return await locationService.getCurrentLocation();
+    return await LocationService.getCurrentLocation();
   } catch (e) {
     // Return null if location permission denied or service unavailable
     return null;

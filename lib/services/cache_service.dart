@@ -34,7 +34,6 @@ class CacheService {
     };
 
     await box.putAll(categoriesMap);
-    await box.put('_cached_at', null); // Store timestamp separately
     await _storeTimestamp(_categoriesBox);
   }
 

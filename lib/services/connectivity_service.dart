@@ -19,13 +19,13 @@ class ConnectivityService {
 
   Future<void> initialize() async {
     // Check initial connectivity
-    final result = await _connectivity.checkConnectivity();
-    _isOnline = _isConnected(result.first);
+    final results = await _connectivity.checkConnectivity();
+    _isOnline = _isConnected(results);
 
     // Listen to connectivity changes
-    _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
+    _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> newResults) {
       final wasOnline = _isOnline;
-      _isOnline = _isConnected(results.first);
+      _isOnline = _isConnected(newResults);
 
       // Only emit if status changed
       if (wasOnline != _isOnline) {
@@ -34,8 +34,8 @@ class ConnectivityService {
     });
   }
 
-  bool _isConnected(ConnectivityResult result) {
-    return result != ConnectivityResult.none;
+  bool _isConnected(List<ConnectivityResult> results) {
+    return !results.contains(ConnectivityResult.none);
   }
 
   void dispose() {

@@ -1,8 +1,5 @@
 import 'package:hive/hive.dart';
 
-part 'cached_data.g.dart';
-
-@HiveType(typeId: 2)
 class CachedData<T> {
   @HiveField(0)
   final T data;

@@ -45,13 +45,15 @@ ThemeData buildTheme() {
   );
 
   try {
-    final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
-    return base.copyWith(
-      textTheme: googleFontsTheme.apply(
-        bodyColor: AppColors.darkText,
-        displayColor: AppColors.darkText,
-      ),
-    );
+    // TEMPORARY: Disable Google Fonts to debug crash
+    // final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
+    // return base.copyWith(
+    //   textTheme: googleFontsTheme.apply(
+    //     bodyColor: AppColors.darkText,
+    //     displayColor: AppColors.darkText,
+    //   ),
+    // );
+    throw Exception('Skipping Google Fonts for debugging');
   } catch (e) {
     debugPrint('⚠️ [THEME] GoogleFonts failed to load, using fallback: $e');
     return base.copyWith(
