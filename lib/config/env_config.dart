@@ -12,17 +12,16 @@ class EnvConfig {
 
   EnvConfig({required this.supabaseUrl, required this.supabaseAnonKey});
 
-  /// Factory constructor to load configuration from the .env file.
+  /// Factory constructor to load configuration from .env file or Dart defines.
   factory EnvConfig.load() {
-    // Ensure that the .env file is loaded before accessing variables
-    if (dotenv.env.isEmpty) {
-      throw Exception(
-        'Dotenv has not been initialized. Call dotenv.load() in main.dart',
-      );
-    }
+    // Try reading from Dotenv first, then fallback to Dart environment variables (flags)
+    // This supports both local dev (.env) and CI/CD (--dart-define)
+    final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
+    final key = dotenv.env['SUPABASE_ANON_KEY'] ?? const String.fromEnvironment('SUPABASE_ANON_KEY');
+
     return EnvConfig(
-      supabaseUrl: dotenv.env['SUPABASE_URL'] ?? '',
-      supabaseAnonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+      supabaseUrl: url,
+      supabaseAnonKey: key,
     );
   }
 
