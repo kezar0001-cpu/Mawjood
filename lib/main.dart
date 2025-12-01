@@ -46,8 +46,17 @@ ThemeData buildTheme() {
 
   try {
     final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
+    
+    // Ensure critical text styles are not null by merging with base defaults if needed
+    final safeTextTheme = googleFontsTheme.copyWith(
+      labelLarge: googleFontsTheme.labelLarge ?? base.textTheme.labelLarge,
+      bodyMedium: googleFontsTheme.bodyMedium ?? base.textTheme.bodyMedium,
+      headlineSmall: googleFontsTheme.headlineSmall ?? base.textTheme.headlineSmall,
+      bodyLarge: googleFontsTheme.bodyLarge ?? base.textTheme.bodyLarge,
+    );
+
     return base.copyWith(
-      textTheme: googleFontsTheme.apply(
+      textTheme: safeTextTheme.apply(
         bodyColor: AppColors.darkText,
         displayColor: AppColors.darkText,
       ),
@@ -261,22 +270,6 @@ class _MawjoodAppState extends State<MawjoodApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      // Add a builder to inspect the theme and catch errors globally
-      builder: (context, child) {
-        if (child == null) return const SizedBox.shrink();
-        
-        // Safety check for Theme
-        try {
-          final theme = Theme.of(context);
-          if (theme.textTheme.bodyMedium == null) {
-             debugPrint('⚠️ [MAIN] Theme.of(context).textTheme.bodyMedium is null in MaterialApp builder');
-          }
-        } catch (e) {
-          debugPrint('⚠️ [MAIN] Error accessing Theme in MaterialApp builder: $e');
-        }
-        
-        return child;
-      },
       initialRoute: _hasSeenOnboarding ? HomeScreen.routeName : OnboardingScreen.routeName,
       routes: {
         OnboardingScreen.routeName: (context) => const OnboardingScreen(),
