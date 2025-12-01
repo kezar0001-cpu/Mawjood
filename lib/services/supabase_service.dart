@@ -30,7 +30,8 @@ class SupabaseService {
     final configError = env.configurationError;
 
     if (configError != null) {
-      debugPrint('❌ [SUPABASE] Configuration error: $configError');
+      debugPrint('❌ [SUPABASE] Configuration error found: "$configError"');
+      // Intentionally using toString() to ensure minified builds show the string message
       throw Exception('Supabase configuration error: $configError');
     }
 

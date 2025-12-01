@@ -97,7 +97,7 @@ Future<void> main() async {
     await initFuture;
     debugPrint('✅ [MAIN] Supabase initialization completed successfully');
   } catch (e, stackTrace) {
-    debugPrint('❌ [MAIN] Supabase initialization error: $e');
+    debugPrint('❌ [MAIN] Supabase initialization error: ${e.toString()}');
     debugPrint('Stack trace: $stackTrace');
   }
 
