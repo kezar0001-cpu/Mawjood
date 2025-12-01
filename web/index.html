@@ -32,7 +32,18 @@
   <title>mawjood</title>
   <link rel="manifest" href="manifest.json">
 </head>
-<body>
+<body style="background-color: black;">
+  <script>
+    // Temporarily disable service worker to fight caching during debugging
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('Service Worker unregistered:', registration);
+        }
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
