@@ -30175,8 +30175,8 @@ throw A.e(p)}catch(r){s=A.V(r)
 A.bC().$1("\u26a0\ufe0f [THEME] GoogleFonts failed to load, using fallback: "+A.k(s))
 p=n.M0(n.ok.auL(B.aC,B.aC,"Arial"))
 return p}},
-acZ(){var s=0,r=A.v(t.H),q=1,p=[],o,n,m,l,k,j,i,h,g,f,e,d,c,b
-var $async$acZ=A.q(function(a,a0){if(a===1){p.push(a0)
+acZ(){var s=0,r=A.v(t.H),q=1,p=[],o,n,m,l,k,j,i,h,g,f,e,d,c
+var $async$acZ=A.q(function(a,b){if(a===1){p.push(b)
 s=q}for(;;)switch(s){case 0:$.kp=new A.aRW()
 if($.ag==null)A.aCb()
 $.ag.toString
@@ -30190,52 +30190,51 @@ q=1
 s=5
 break
 case 3:q=2
-c=p.pop()
-o=A.V(c)
-A.bC().$1("\u274c [MAIN] Error loading .env file: "+A.k(o))
+d=p.pop()
+A.bC().$1("\u2139\ufe0f [MAIN] .env file not found (using build flags if available)")
 s=5
 break
 case 2:s=1
 break
-case 5:n=A.a_l()
+case 5:o=A.a_l()
 q=8
 A.bC().$1("\u23f3 [MAIN] Waiting for Supabase initialization...")
 s=11
-return A.n(n,$async$acZ)
+return A.n(o,$async$acZ)
 case 11:A.bC().$1("\u2705 [MAIN] Supabase initialization completed successfully")
 q=1
 s=10
 break
 case 8:q=7
-b=p.pop()
-m=A.V(b)
-l=A.ah(b)
-A.bC().$1("\u274c [MAIN] Supabase initialization error: "+A.k(m))
-A.bC().$1("Stack trace: "+A.k(l))
+c=p.pop()
+n=A.V(c)
+m=A.ah(c)
+A.bC().$1("\u274c [MAIN] Supabase initialization error: "+A.k(n))
+A.bC().$1("Stack trace: "+A.k(m))
 s=10
 break
 case 7:s=1
 break
 case 10:A.bC().$1("\ud83c\udfac [MAIN] Running app...")
 if($.ag==null)A.aCb()
-j=$.ag
+k=$.ag
+k.toString
+j=$.b8().gdZ().b
+i=t.e8
+if(i.a(j.i(0,0))==null)A.Q(A.a5('The app requested a view, but the platform did not provide one.\nThis is likely because the app called `runApp` to render its root widget, which expects the platform to provide a default view to render into (the "implicit" view).\nHowever, the platform likely has multi-view mode enabled, which does not create this default "implicit" view.\nTry using `runWidget` instead of `runApp` to start your app.\n`runWidget` allows you to provide a `View` widget, without requiring a default view.\nSee: https://flutter.dev/to/web-multiview-runwidget'))
+h=i.a(j.i(0,0))
+h.toString
+g=k.gFu()
+f=k.fr$
+if(f===$){j=i.a(j.i(0,0))
 j.toString
-i=$.b8().gdZ().b
-h=t.e8
-if(h.a(i.i(0,0))==null)A.Q(A.a5('The app requested a view, but the platform did not provide one.\nThis is likely because the app called `runApp` to render its root widget, which expects the platform to provide a default view to render into (the "implicit" view).\nHowever, the platform likely has multi-view mode enabled, which does not create this default "implicit" view.\nTry using `runWidget` instead of `runApp` to start your app.\n`runWidget` allows you to provide a `View` widget, without requiring a default view.\nSee: https://flutter.dev/to/web-multiview-runwidget'))
-g=h.a(i.i(0,0))
-g.toString
-f=j.gFu()
-e=j.fr$
-if(e===$){i=h.a(i.i(0,0))
-i.toString
-d=new A.a8P(B.P,i,null,A.ap(t.T))
-d.aZ()
-d.acB(null,null,i)
-j.fr$!==$&&A.aH()
-j.fr$=d
-e=d}j.a6A(new A.In(g,new A.FL(new A.EM(n,null),null),f,e,null))
-j.Ql()
+e=new A.a8P(B.P,j,null,A.ap(t.T))
+e.aZ()
+e.acB(null,null,j)
+k.fr$!==$&&A.aH()
+k.fr$=e
+f=e}k.a6A(new A.In(h,new A.FL(new A.EM(o,null),null),g,f,null))
+k.Ql()
 return A.t(null,r)
 case 1:return A.r(p.at(-1),r)}})
 return A.u($async$acZ,r)},
@@ -30864,9 +30863,9 @@ a_l(){var s=0,r=A.v(t.H),q=1,p=[],o,n,m,l,k,j,i,h,g
 var $async$a_l=A.q(function(a,b){if(a===1){p.push(b)
 s=q}for(;;)switch(s){case 0:A.bC().$1("\ud83d\udd27 [SUPABASE] Starting initialization...")
 l=$.aSD().ga1f().i(0,"SUPABASE_URL")
-if(l==null)l=""
+if(l==null)l="https://yywjdkunrkakxwgdwsjz.supabase.co"
 k=$.aSD().ga1f().i(0,"SUPABASE_ANON_KEY")
-o=new A.ajd(l,k==null?"":k)
+o=new A.ajd(l,k==null?"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5d2pka3Vucmtha3h3Z2R3c2p6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMjQwMjYsImV4cCI6MjA3OTkwMDAyNn0.TjviqrZWd1wUnTFS8YpbXDrH3BfidpmgQkgALZQNzs4":k)
 j=o.gavK()
 if(j!=null){A.bC().$1("\u274c [SUPABASE] Configuration error: "+j)
 throw A.e(A.e7("Supabase configuration error: "+j))}A.bC().$1("\u2713 [SUPABASE] Configuration validated")
@@ -104372,8 +104371,8 @@ return B.d.bl(r,s)},
 $S:621}
 A.ajd.prototype={
 gavK(){var s=this.a
-if(s.length===0)return"SUPABASE_URL is not defined in .env file"
-if(this.b.length===0)return"SUPABASE_ANON_KEY is not defined in .env file"
+if(s.length===0)return"SUPABASE_URL is not defined (checked .env and --dart-define)"
+if(this.b.length===0)return"SUPABASE_ANON_KEY is not defined (checked .env and --dart-define)"
 if(!B.c.by(s,"https://"))return"Supabase URL must start with https://"
 if(!B.c.p(s,".supabase.co"))return"Supabase URL must contain .supabase.co"
 return null}}
