@@ -5,6 +5,7 @@ import 'package:mawjood/models/category.dart';
 import 'package:mawjood/providers/business_provider.dart';
 import 'package:mawjood/providers/category_provider.dart';
 import 'package:mawjood/services/connectivity_service.dart'; // Keep this import for the provider itself if needed elsewhere
+import 'package:mawjood/services/cache_service.dart';
 import 'package:mawjood/widgets/business_card.dart';
 import 'package:mawjood/widgets/category_card.dart';
 import 'package:mawjood/widgets/mawjood_search_bar.dart';
