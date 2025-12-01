@@ -24,15 +24,37 @@ class AppTheme {
       labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.darkText),
     );
 
-    // 2. Apply the Cairo font family.
-    // We use 'apply' to inject the font family into our robust baseTextTheme.
-    // If GoogleFonts fails to load (e.g. network error), it might fallback to default, but the styles won't be null.
-    TextTheme safeTextTheme;
+    // 2. Apply the Cairo font family safely.
+    // We create a copy of the base theme with the font applied.
+    // This ensures that we start with a fully populated theme.
+    TextTheme safeTextTheme = baseTextTheme;
     try {
-      safeTextTheme = GoogleFonts.cairoTextTheme(baseTextTheme);
+      // GoogleFonts.cairoTextTheme returns a NEW TextTheme.
+      // We must ensure it doesn't have nulls where we expect values.
+      final googleTheme = GoogleFonts.cairoTextTheme(baseTextTheme);
+      
+      // Manually copy the non-null values from googleTheme back to baseTextTheme
+      // This is safer than just assigning it.
+      safeTextTheme = baseTextTheme.copyWith(
+        displayLarge: googleTheme.displayLarge,
+        displayMedium: googleTheme.displayMedium,
+        displaySmall: googleTheme.displaySmall,
+        headlineLarge: googleTheme.headlineLarge,
+        headlineMedium: googleTheme.headlineMedium,
+        headlineSmall: googleTheme.headlineSmall,
+        titleLarge: googleTheme.titleLarge,
+        titleMedium: googleTheme.titleMedium,
+        titleSmall: googleTheme.titleSmall,
+        bodyLarge: googleTheme.bodyLarge,
+        bodyMedium: googleTheme.bodyMedium,
+        bodySmall: googleTheme.bodySmall,
+        labelLarge: googleTheme.labelLarge,
+        labelMedium: googleTheme.labelMedium,
+        labelSmall: googleTheme.labelSmall,
+      );
     } catch (e) {
       debugPrint('⚠️ [THEME] GoogleFonts failed to load: $e. Using default font.');
-      safeTextTheme = baseTextTheme.apply(fontFamily: 'Arial'); // Fallback for Web/Mobile
+      // safeTextTheme remains baseTextTheme (Arial fallback implicitly via style)
     }
 
     return ThemeData(
@@ -63,7 +85,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          textStyle: safeTextTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+          textStyle: (safeTextTheme.labelLarge ?? baseTextTheme.labelLarge)?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
