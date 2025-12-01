@@ -26,7 +26,15 @@ class SupabaseService {
   static Future<void> initialize() async {
     debugPrint('🔧 [SUPABASE] Starting initialization...');
 
-    final env = EnvConfig.load();
+    EnvConfig env;
+    try {
+      env = EnvConfig.load();
+    } catch (e, s) {
+      debugPrint('❌ [SUPABASE] CRITICAL: Failed to load environment config: $e');
+      debugPrint('Stack: $s');
+      rethrow;
+    }
+
     final configError = env.configurationError;
 
     if (configError != null) {
@@ -37,7 +45,7 @@ class SupabaseService {
 
     debugPrint('✓ [SUPABASE] Configuration validated');
     debugPrint('🔗 [SUPABASE] URL: ${env.supabaseUrl}');
-    debugPrint('🔑 [SUPABASE] AnonKey: ${env.supabaseAnonKey.substring(0, 10)}...');
+    debugPrint('🔑 [SUPABASE] AnonKey: ${env.supabaseAnonKey.isNotEmpty ? "PRESENT" : "MISSING"}'); // Don't print actual key in logs if possible
 
     try {
       await Supabase.initialize(
