@@ -45,18 +45,12 @@ ThemeData buildTheme() {
   );
 
   try {
+    // Create a TextTheme that uses Cairo for all styles, starting from the comprehensive base TextTheme
+    // This ensures that no style is left null.
     final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
-    
-    // Ensure critical text styles are not null by merging with base defaults if needed
-    final safeTextTheme = googleFontsTheme.copyWith(
-      labelLarge: googleFontsTheme.labelLarge ?? base.textTheme.labelLarge,
-      bodyMedium: googleFontsTheme.bodyMedium ?? base.textTheme.bodyMedium,
-      headlineSmall: googleFontsTheme.headlineSmall ?? base.textTheme.headlineSmall,
-      bodyLarge: googleFontsTheme.bodyLarge ?? base.textTheme.bodyLarge,
-    );
 
     return base.copyWith(
-      textTheme: safeTextTheme.apply(
+      textTheme: googleFontsTheme.apply(
         bodyColor: AppColors.darkText,
         displayColor: AppColors.darkText,
       ),
