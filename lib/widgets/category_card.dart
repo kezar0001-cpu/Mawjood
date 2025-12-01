@@ -41,13 +41,17 @@ class CategoryCard extends StatelessWidget {
                 background: category.color.withOpacity(0.12),
               ),
               const SizedBox(height: 14),
-              Text(
-                category.displayName,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+              Flexible(
+                child: Text(
+                  category.displayName,
+                  textAlign: TextAlign.center,
+                  maxLines: 2, // Allow text to wrap up to 2 lines
+                  overflow: TextOverflow.ellipsis, // Truncate if it still overflows
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                ),
               ),
             ],
           ),

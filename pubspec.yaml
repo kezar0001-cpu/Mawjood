@@ -53,3 +53,4 @@ flutter:
     - assets/images/no_results.svg
     - assets/images/error.svg
     - assets/images/empty_category.svg
+    - .env
