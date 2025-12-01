@@ -196,23 +196,41 @@ class _OnboardingPageWidget extends StatelessWidget {
           ),
           const SizedBox(height: 48),
           // Title
-          Text(
-            page.title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          Builder(
+            builder: (context) {
+              final theme = Theme.of(context);
+              if (theme.textTheme.headlineSmall == null) {
+                 debugPrint('❌ [ONBOARDING] Theme.of(context).textTheme.headlineSmall is NULL');
+                 return Text(page.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
+              }
+              return Text(
+                page.title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineSmall!.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.darkText,
                 ),
+              );
+            }
           ),
           const SizedBox(height: 16),
           // Description
-          Text(
-            page.description,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          Builder(
+            builder: (context) {
+              final theme = Theme.of(context);
+              if (theme.textTheme.bodyLarge == null) {
+                 debugPrint('❌ [ONBOARDING] Theme.of(context).textTheme.bodyLarge is NULL');
+                 return Text(page.description, textAlign: TextAlign.center);
+              }
+              return Text(
+                page.description,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge!.copyWith(
                   color: Colors.black54,
                   height: 1.5,
                 ),
+              );
+            }
           ),
         ],
       ),
