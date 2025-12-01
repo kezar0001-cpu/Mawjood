@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 
 import '../config/env_config.dart';
 import '../models/business.dart';
@@ -8,27 +9,20 @@ import '../models/review.dart';
 import '../models/business_claim.dart';
 
 class SupabaseService {
-  static bool _isInitialized = false;
+  final SupabaseClient _client;
+  bool _isInitialized = false;
 
-  static SupabaseClient get client {
-    if (!_isInitialized) {
-      debugPrint('❌ [SUPABASE] Attempting to access client before initialization');
-      throw StateError(
-        'Supabase has not been initialized. Call SupabaseService.initialize() '
-        'and wait for it to complete before accessing the client.',
-      );
-    }
-    return Supabase.instance.client;
-  }
+  SupabaseService(this._client); // Constructor now takes SupabaseClient
 
-  static bool get isInitialized => _isInitialized;
+  bool get isInitialized => _isInitialized;
 
-  static Future<void> initialize() async {
+  // Static factory to initialize and provide a configured instance (for main.dart)
+  static Future<SupabaseService> initializeAndCreate() async {
     debugPrint('🔧 [SUPABASE] Starting initialization...');
 
     EnvConfig env;
     try {
-      env = EnvConfig.load();
+      env = EnvConfig.load(); // Direct load for app startup
     } catch (e, s) {
       debugPrint('❌ [SUPABASE] CRITICAL: Failed to load environment config: $e');
       debugPrint('Stack: $s');
@@ -39,13 +33,12 @@ class SupabaseService {
 
     if (configError != null) {
       debugPrint('❌ [SUPABASE] Configuration error found: "$configError"');
-      // Intentionally using toString() to ensure minified builds show the string message
       throw Exception('Supabase configuration error: $configError');
     }
 
     debugPrint('✓ [SUPABASE] Configuration validated');
     debugPrint('🔗 [SUPABASE] URL: ${env.supabaseUrl}');
-    debugPrint('🔑 [SUPABASE] AnonKey: ${env.supabaseAnonKey.isNotEmpty ? "PRESENT" : "MISSING"}'); // Don't print actual key in logs if possible
+    debugPrint('🔑 [SUPABASE] AnonKey: ${env.supabaseAnonKey.isNotEmpty ? "PRESENT" : "MISSING"}');
 
     try {
       await Supabase.initialize(
@@ -53,25 +46,27 @@ class SupabaseService {
         anonKey: env.supabaseAnonKey,
       );
 
-      _isInitialized = true;
+      final service = SupabaseService(Supabase.instance.client);
+      service._isInitialized = true; // Mark this instance as initialized
       debugPrint('✅ [SUPABASE] Initialization successful');
+      return service;
     } catch (e, stackTrace) {
       debugPrint('❌ [SUPABASE] Initialization failed: $e');
       debugPrint('Stack: $stackTrace');
-      _isInitialized = false;
       rethrow;
     }
   }
 
   // Generic fetch method with error handling
-  static Future<List<T>> _fetch<T>(
+  Future<List<T>> _fetch<T>(
     Future<List<Map<String, dynamic>>> request,
     T Function(Map<String, dynamic>) fromMap,
     String methodName,
   ) async {
+    // Check initialization status of this specific instance
     if (!_isInitialized) {
       debugPrint('⚠️ [SUPABASE] $methodName called before initialization');
-      return [];
+      throw StateError('SupabaseService instance not initialized.');
     }
     try {
       final response = await request;
@@ -79,47 +74,47 @@ class SupabaseService {
     } catch (e, stackTrace) {
       debugPrint('❌ [SUPABASE] Error in $methodName: $e');
       debugPrint('Stack: $stackTrace');
-      rethrow; // Rethrow to be handled by the UI layer
+      rethrow;
     }
   }
 
-  static Future<List<Category>> getCategories() {
+  Future<List<Category>> getCategories() {
     return _fetch(
-      client.from('categories').select().order('name_ar', ascending: true).then((res) => List<Map<String, dynamic>>.from(res)),
+      _client.from('categories').select().order('name_ar', ascending: true).then((res) => List<Map<String, dynamic>>.from(res)),
       Category.fromMap,
       'getCategories',
     );
   }
 
-  static Future<List<Business>> getBusinessesByCategory(String categoryId) {
+  Future<List<Business>> getBusinessesByCategory(String categoryId) {
     return _fetch(
-      client.from('businesses').select().eq('category_id', categoryId).order('name', ascending: true).then((res) => List<Map<String, dynamic>>.from(res)),
+      _client.from('businesses').select().eq('category_id', categoryId).order('name', ascending: true).then((res) => List<Map<String, dynamic>>.from(res)),
       Business.fromMap,
       'getBusinessesByCategory',
     );
   }
 
-  static Future<List<Business>> searchBusinesses(String query) {
+  Future<List<Business>> searchBusinesses(String query) {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return Future.value([]);
 
     return _fetch(
-      client.from('businesses').select().or('name.ilike.%$trimmed%,description.ilike.%$trimmed%').order('name', ascending: true).then((res) => List<Map<String, dynamic>>.from(res)),
+      _client.from('businesses').select().or('name.ilike.%$trimmed%,description.ilike.%$trimmed%').order('name', ascending: true).then((res) => List<Map<String, dynamic>>.from(res)),
       Business.fromMap,
       'searchBusinesses',
     );
   }
 
-  static Future<Business?> getBusinessById(String id) async {
+  Future<Business?> getBusinessById(String id) async {
     if (!_isInitialized) {
       debugPrint('⚠️ [SUPABASE] getBusinessById called before initialization');
       return null;
     }
     try {
-      final response = await client.from('businesses').select().eq('id', id).limit(1).maybeSingle();
+      final response = await _client.from('businesses').select().eq('id', id).limit(1).maybeSingle();
       if (response == null) return null;
 
-      final reviewCountResponse = await client.from('reviews').select('id').eq('business_id', id).count(CountOption.exact);
+      final reviewCountResponse = await _client.from('reviews').select('id').eq('business_id', id).count(CountOption.exact);
       response['review_count'] = reviewCountResponse.count ?? 0;
       return Business.fromMap(response);
     } catch (e, stackTrace) {
@@ -129,26 +124,26 @@ class SupabaseService {
     }
   }
 
-  static Future<List<Review>> getReviewsForBusiness(String businessId) {
+  Future<List<Review>> getReviewsForBusiness(String businessId) {
     return _fetch(
-      client.from('reviews').select().eq('business_id', businessId).order('created_at', ascending: false).then((res) => List<Map<String, dynamic>>.from(res)),
+      _client.from('reviews').select().eq('business_id', businessId).order('created_at', ascending: false).then((res) => List<Map<String, dynamic>>.from(res)),
       Review.fromMap,
       'getReviewsForBusiness',
     );
   }
 
-  static Future<Review> submitReview({
+  Future<Review> submitReview({
     required String businessId,
     required String userName,
     required int rating,
     String? comment,
   }) async {
-    final userId = client.auth.currentUser?.id;
+    final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User must be logged in to submit a review');
     if (userName.isEmpty) throw Exception('User name cannot be empty');
 
     try {
-      final response = await client.from('reviews').insert({
+      final response = await _client.from('reviews').insert({
         'business_id': businessId,
         'user_id': userId,
         'user_name': userName,
@@ -163,16 +158,16 @@ class SupabaseService {
     }
   }
 
-  static Future<void> updateReview({
+  Future<void> updateReview({
     required String reviewId,
     required int rating,
     String? comment,
   }) async {
-    final userId = client.auth.currentUser?.id;
+    final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User must be logged in to update a review');
 
     try {
-      await client.from('reviews').update({
+      await _client.from('reviews').update({
         'rating': rating,
         'comment': comment,
       }).eq('id', reviewId).eq('user_id', userId);
@@ -183,12 +178,12 @@ class SupabaseService {
     }
   }
 
-  static Future<void> deleteReview(String reviewId) async {
-    final userId = client.auth.currentUser?.id;
+  Future<void> deleteReview(String reviewId) async {
+    final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User must be logged in to delete a review');
 
     try {
-      await client.from('reviews').delete().eq('id', reviewId).eq('user_id', userId);
+      await _client.from('reviews').delete().eq('id', reviewId).eq('user_id', userId);
     } catch (e, stackTrace) {
       debugPrint('❌ [SUPABASE] Error deleting review: $e');
       debugPrint('Stack: $stackTrace');
@@ -196,18 +191,18 @@ class SupabaseService {
     }
   }
 
-  static Future<BusinessClaim> submitBusinessClaim({
+  Future<BusinessClaim> submitBusinessClaim({
     required String businessId,
     required String userName,
     required String userEmail,
     String? userPhone,
     List<String>? proofDocuments,
   }) async {
-    final userId = client.auth.currentUser?.id;
+    final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User must be logged in to claim a business');
 
     try {
-      final response = await client.from('business_claims').insert({
+      final response = await _client.from('business_claims').insert({
         'business_id': businessId,
         'user_id': userId,
         'user_name': userName,
@@ -223,12 +218,12 @@ class SupabaseService {
     }
   }
 
-  static Future<BusinessClaim?> getBusinessClaimForUser(String businessId) async {
-    final userId = client.auth.currentUser?.id;
+  Future<BusinessClaim?> getBusinessClaimForUser(String businessId) async {
+    final userId = _client.auth.currentUser?.id;
     if (userId == null) return null;
 
     try {
-      final response = await client
+      final response = await _client
           .from('business_claims')
           .select()
           .eq('business_id', businessId)
@@ -244,3 +239,13 @@ class SupabaseService {
     }
   }
 }
+
+// Riverpod provider for SupabaseService
+final supabaseServiceProvider = Provider<SupabaseService>((ref) {
+  // Ensure Supabase.instance.client is available before creating the service
+  // This provider assumes Supabase.initialize has already been called in main()
+  final client = Supabase.instance.client;
+  final service = SupabaseService(client);
+  service._isInitialized = true; // Mark as initialized when provided
+  return service;
+});

@@ -1,28 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/business.dart';
-import '../repositories/business_repository.dart';
+import '../repositories/business_repository.dart'; // Import the correct provider
 import '../services/cache_service.dart';
-import '../services/connectivity_service.dart';
-
-// Repository provider
-final businessRepositoryProvider = Provider<BusinessRepository>((ref) {
-  return BusinessRepository();
-});
+import '../services/connectivity_service.dart'; // Import the new connectivity provider
 
 // Businesses by category provider (family)
 final businessesByCategoryProvider =
     FutureProvider.family<List<Business>, String>((ref, categoryId) async {
   final repository = ref.watch(businessRepositoryProvider);
-  final connectivityService = ConnectivityService();
+  final isOnline = ref.watch(connectivityStatusProvider); // Use the new provider
+  final cacheService = ref.watch(cacheServiceProvider); // Get CacheService instance
 
   // Try cache first
-  final cachedBusinesses = await CacheService.getCachedBusinesses(categoryId);
+  final cachedBusinesses = await cacheService.getCachedBusinesses(categoryId);
   if (cachedBusinesses != null && cachedBusinesses.isNotEmpty) {
     return cachedBusinesses;
   }
 
   // If offline and no cache, return empty
-  if (!connectivityService.isOnline) {
+  if (!isOnline) { // Use the online status from the provider
     return [];
   }
 
@@ -32,13 +28,13 @@ final businessesByCategoryProvider =
 
     // Cache the results
     if (businesses.isNotEmpty) {
-      await CacheService.cacheBusinesses(categoryId, businesses);
+      await cacheService.cacheBusinesses(categoryId, businesses);
     }
 
     return businesses;
   } catch (e) {
     // If API fails, try cache even if expired
-    final expiredCache = await CacheService.getCachedBusinesses(categoryId);
+    final expiredCache = await cacheService.getCachedBusinesses(categoryId);
     if (expiredCache != null && expiredCache.isNotEmpty) {
       return expiredCache;
     }
@@ -54,16 +50,17 @@ final searchResultsProvider =
   }
 
   final repository = ref.watch(businessRepositoryProvider);
-  final connectivityService = ConnectivityService();
+  final isOnline = ref.watch(connectivityStatusProvider); // Use the new provider
+  final cacheService = ref.watch(cacheServiceProvider); // Get CacheService instance
 
   // Try cache first
-  final cachedResults = await CacheService.getCachedSearchResults(query);
+  final cachedResults = await cacheService.getCachedSearchResults(query);
   if (cachedResults != null && cachedResults.isNotEmpty) {
     return cachedResults;
   }
 
   // If offline and no cache, return empty
-  if (!connectivityService.isOnline) {
+  if (!isOnline) { // Use the online status from the provider
     return [];
   }
 
@@ -73,18 +70,18 @@ final searchResultsProvider =
 
     // Cache the results
     if (results.isNotEmpty) {
-      await CacheService.cacheSearchResults(query, results);
+      await cacheService.cacheSearchResults(query, results);
     }
 
     // Add to recent searches
     if (query.trim().isNotEmpty) {
-      await CacheService.addRecentSearch(query.trim());
+      await cacheService.addRecentSearch(query.trim());
     }
 
     return results;
   } catch (e) {
     // If API fails, try cache even if expired
-    final expiredCache = await CacheService.getCachedSearchResults(query);
+    final expiredCache = await cacheService.getCachedSearchResults(query);
     if (expiredCache != null && expiredCache.isNotEmpty) {
       return expiredCache;
     }

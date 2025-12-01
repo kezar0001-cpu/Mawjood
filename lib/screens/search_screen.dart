@@ -1,37 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mawjood/providers/recent_searches_provider.dart';
+import 'package:mawjood/widgets/mawjood_search_bar.dart';
+import 'package:mawjood/screens/search_results_screen.dart'; // We will create this next
 
-import '../models/business.dart';
-import '../repositories/business_repository.dart';
-import '../widgets/business_card.dart';
-import 'business_detail_screen.dart';
-
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
-  static const String routeName = '/search';
-
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final BusinessRepository _repository = BusinessRepository();
-  List<Business> _results = [];
-  bool _loading = false;
-  String _lastQuery = '';
+class _SearchScreenState extends ConsumerState<SearchScreen> {
+  late TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      final query = args != null ? (args['query'] as String? ?? '') : '';
-      if (query.isNotEmpty) {
-        _searchController.text = query;
-        _search(query);
-      }
-    });
+    _searchController = TextEditingController();
   }
 
   @override
@@ -40,81 +26,77 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  Future<void> _search(String query) async {
-    if (query.trim().isEmpty) {
-      setState(() {
-        _results = [];
-        _lastQuery = '';
-        _loading = false;
-      });
-      return;
-    }
-    if (query == _lastQuery) return;
-    setState(() {
-      _loading = true;
-      _lastQuery = query;
-    });
-    try {
-      final results = await _repository.searchBusinesses(query);
-      setState(() {
-        _results = results;
-        _loading = false;
-      });
-    } catch (_) {
-      setState(() {
-        _loading = false;
-      });
+  void _performSearch(String query) {
+    if (query.trim().isNotEmpty) {
+      ref.read(recentSearchesProvider.notifier).addSearch(query.trim());
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => SearchResultsScreen(query: query.trim()),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final recentSearches = ref.watch(recentSearchesProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('بحث'),
+        title: const Text('بحث'), // Search
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: MawjoodSearchBar(
               controller: _searchController,
-              textAlign: TextAlign.right,
-              onChanged: (value) => _search(value),
-              decoration: const InputDecoration(
-                hintText: 'أدخل كلمة البحث...',
-                prefixIcon: Icon(Icons.search),
+              onSubmit: _performSearch, // Changed from onSubmitted to onSubmit
+            ),
+          ),
+          if (recentSearches.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'عمليات البحث الأخيرة', // Recent Searches
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      ref.read(recentSearchesProvider.notifier).clearAll();
+                    },
+                    child: const Text('مسح الكل'), // Clear All
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            if (_loading) const LinearProgressIndicator(),
-            const SizedBox(height: 8),
-            Expanded(
-              child: _results.isEmpty && !_loading
-                  ? const Center(child: Text('لا توجد نتائج حتى الآن'))
-                  : ListView.builder(
-                      itemCount: _results.length,
-                      itemBuilder: (context, index) {
-                        final business = _results[index];
-                        return BusinessCard(
-                          business: business,
-                          categoryLabel: business.city,
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              BusinessDetailScreen.routeName,
-                              arguments: {
-                                'businessId': business.id,
-                                'business': business,
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: recentSearches.length,
+              itemBuilder: (context, index) {
+                final search = recentSearches[index];
+                return ListTile(
+                  leading: const Icon(Icons.history),
+                  title: Text(search),
+                  onTap: () {
+                    _searchController.text = search;
+                    _performSearch(search);
+                  },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      // Implement removal of single search if needed, or clear all
+                      // For simplicity now, clearing all.
+                    },
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

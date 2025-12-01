@@ -1,375 +1,149 @@
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../models/category.dart';
-import '../providers/category_provider.dart';
-import '../services/analytics_service.dart';
-import '../utils/app_colors.dart';
-import '../utils/app_text.dart';
-import '../widgets/category_card.dart';
-import '../widgets/mawjood_search_bar.dart';
+import 'package:mawjood/models/business.dart';
+import 'package:mawjood/models/category.dart';
+import 'package:mawjood/providers/business_provider.dart';
+import 'package:mawjood/providers/category_provider.dart';
+import 'package:mawjood/services/connectivity_service.dart'; // Keep this import for the provider itself if needed elsewhere
+import 'package:mawjood/widgets/business_card.dart';
+import 'package:mawjood/widgets/category_card.dart';
+import 'package:mawjood/widgets/mawjood_search_bar.dart';
+import 'package:mawjood/widgets/offline_indicator.dart';
 import 'business_list_screen.dart';
-import 'settings_screen.dart';
-import 'search_results_screen.dart';
+import 'business_detail_screen.dart';
+import 'search_screen.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  static const String routeName = '/';
+  static const String routeName = '/home';
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoriesAsync = ref.watch(categoriesProvider);
+    final _searchController = TextEditingController(); // Dummy controller for MawjoodSearchBar
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final AnalyticsService _analytics = AnalyticsService();
-
-  @override
-  void initState() {
-    super.initState();
-    debugPrint('🏠 [HOME] initState called - categories will be fetched via Riverpod.');
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleRefresh() async {
-    ref.invalidate(categoriesProvider);
-  }
-
-  void _openSearch(String query) {
-    _analytics.logNavigation('home_screen', 'search_results_screen');
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SearchResultsScreen(initialQuery: query),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar(),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _handleRefresh,
-          color: AppColors.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Primary search entry point with soft shadow and RTL-friendly hint.
-                _buildSearchBar(),
-                const SizedBox(height: 16),
-                // Section title row with mock-mode badge for transparency.
-                _buildSectionHeader(),
-                const SizedBox(height: 16),
-                // Premium grid of categories with refined spacing.
-                _buildCategoryGrid(),
-              ],
-            ),
+      appBar: AppBar(
+        title: const Text('موجود', style: TextStyle(fontWeight: FontWeight.bold)), // Mawjood title
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              ref.invalidate(categoriesProvider);
+              // Invalidate businesses as well.
+              // This might need a more granular approach if there are many business providers
+              // For simplicity, we can invalidate specific ones if a featured list is used.
+              // For now, it will refresh when category changes.
+            },
           ),
-        ),
+        ],
       ),
-    );
-  }
-
-  /// Modernized app bar with centered branding and consistent settings access.
-  PreferredSizeWidget _buildAppBar() {
-    return _HomeHeader(
-      onSettingsPressed: () => Navigator.pushNamed(context, SettingsScreen.routeName),
-    );
-  }
-
-  /// Redesigned search bar with rounded corners, subtle shadow, and themed icon.
-  Widget _buildSearchBar() {
-    return MawjoodSearchBar(
-      controller: _searchController,
-      onSubmit: _openSearch,
-      onChanged: (_) => setState(() {}),
-      onFilterTap: () => _openSearch(_searchController.text),
-    );
-  }
-
-  /// Section header with clear titling and a restyled mock badge for transparency.
-  Widget _buildSectionHeader() {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                AppText.categoriesTitle,
-                textAlign: TextAlign.right,
-                style: textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20,
-                  color: AppColors.darkText,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: Container(
-                  width: 36,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: AppColors.accentGold,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'اختر مجالاً للبدء في الاستكشاف',
-                textAlign: TextAlign.right,
-                style: TextStyle(fontWeight: FontWeight.w400, fontSize: 14, color: Colors.black54),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Premium-styled grid of category cards with consistent breathing room.
-  Widget _buildCategoryGrid() {
-    final categoriesAsyncValue = ref.watch(categoriesProvider);
-
-    return categoriesAsyncValue.when(
-      data: (categories) {
-        debugPrint('✅ [HOME] Categories loaded: ${categories.length} items');
-
-        if (categories.isEmpty) {
-          return const _ErrorBanner(message: 'لا توجد تصنيفات متاحة حالياً');
-        }
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final crossAxisCount = (constraints.maxWidth / 180).floor().clamp(2, 4);
-
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
-              itemCount: categories.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 1,
-              ),
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                return CategoryCard(
-                  category: category,
-                  onTap: () {
-                    _analytics.logCategorySelect(category.id, category.displayName);
-                    _analytics.logNavigation('home_screen', 'business_list_screen');
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BusinessListScreen(category: category),
-                      ),
-                    );
-                  },
-                );
-              },
-            );
-          },
-        );
-      },
-      loading: () {
-        debugPrint('🏠 [HOME] Waiting for categories...');
-        return const _CategoryShimmerGrid();
-      },
-      error: (error, stack) {
-        debugPrint('❌ [HOME] Error loading categories: $error');
-        debugPrint('Stack: $stack');
-        _analytics.logError(error, stack, reason: 'Failed to load categories');
-        return _ErrorBanner(
-          message: 'تعذر تحميل التصنيفات من الخادم\n${error.toString()}',
-        );
-      },
-    );
-  }
-}
-
-class _CategoryShimmerGrid extends StatelessWidget {
-  const _CategoryShimmerGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
-      itemCount: 6,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 1,
-      ),
-      itemBuilder: (context, index) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE6E6E6)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+      body: OfflineIndicator( // Wrap the entire body with OfflineIndicator
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: const BoxDecoration(
-                color: Color(0xFFEDEDED),
-                shape: BoxShape.circle,
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: InkWell( // Use InkWell for onTap behavior
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SearchScreen()));
+                },
+                child: MawjoodSearchBar(
+                  controller: _searchController,
+                  onSubmit: (_) { // onSubmit is required but we handle navigation via InkWell
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SearchScreen()));
+                  },
+                ),
               ),
             ),
-            const SizedBox(height: 14),
-            Container(
-              height: 14,
-              width: 90,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEDEDED),
-                borderRadius: BorderRadius.circular(12),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Text('الفئات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)), // Categories
+                    ),
+                    categoriesAsync.when(
+                      data: (categories) {
+                        if (categories.isEmpty) {
+                          return const Center(child: Text('لا توجد فئات متاحة')); // No categories available
+                        }
+                        return SizedBox(
+                          height: 120, // Height for horizontal category list
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: categories.length,
+                            itemBuilder: (context, index) {
+                              final category = categories[index];
+                              return CategoryCard(
+                                category: category,
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => BusinessListScreen(category: category),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        );
+                      },
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (err, stack) => Center(child: Text('خطأ في تحميل الفئات: $err')), // Error loading categories
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Text('أعمال مميزة', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)), // Featured Businesses
+                    ),
+                    // For MVP, we'll just show businesses from the first category if available
+                    categoriesAsync.when(
+                      data: (categories) {
+                        if (categories.isEmpty) {
+                          return const Center(child: Text('لا توجد أعمال مميزة متاحة')); // No featured businesses available
+                        }
+                        final firstCategoryId = categories.first.id;
+                        final businessesAsync = ref.watch(businessesByCategoryProvider(firstCategoryId));
+
+                        return businessesAsync.when(
+                          data: (businesses) {
+                            if (businesses.isEmpty) {
+                              return const Center(child: Text('لا توجد أعمال في هذه الفئة')); // No businesses in this category
+                            }
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: businesses.length,
+                              itemBuilder: (context, index) {
+                                final business = businesses[index];
+                                return BusinessCard(
+                                  business: business,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => BusinessDetailScreen(businessId: business.id, initialBusiness: business),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (err, stack) => Center(child: Text('خطأ في تحميل الأعمال: $err')), // Error loading businesses
+                        );
+                      },
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (err, stack) => const SizedBox.shrink(), // Error already handled above for categories
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: AppColors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.darkText,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HomeHeader extends StatelessWidget implements PreferredSizeWidget {
-  const _HomeHeader({required this.onSettingsPressed});
-
-  final VoidCallback onSettingsPressed;
-
-  @override
-  Size get preferredSize => const Size.fromHeight(112);
-
-  @override
-  Widget build(BuildContext context) {
-    final double statusBarPadding = MediaQuery.of(context).padding.top;
-
-    return Container(
-      color: AppColors.primary,
-      padding: EdgeInsetsDirectional.fromSTEB(16, statusBarPadding + 8, 16, 16),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _HeaderIconButton(
-              tooltip: AppText.settings,
-              icon: Icons.settings_rounded,
-              onTap: onSettingsPressed,
-            ),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                AppText.appName,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 22,
-                  color: Colors.white,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                AppText.tagline,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.tooltip, required this.icon, required this.onTap});
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Colors.white.withOpacity(0.12),
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Icon(icon, color: Colors.white, size: 22),
-          ),
         ),
       ),
     );

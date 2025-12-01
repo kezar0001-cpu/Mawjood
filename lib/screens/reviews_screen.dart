@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 import '../models/business.dart';
 import '../models/review.dart';
-import '../services/supabase_service.dart';
+import '../services/supabase_service.dart'; // Keep for type reference if needed, but not for direct static calls
 import 'package:intl/intl.dart' show DateFormat;
 
-class ReviewsScreen extends StatefulWidget {
+class ReviewsScreen extends ConsumerStatefulWidget { // Changed to ConsumerStatefulWidget
   static const String routeName = '/reviews';
   final Business business;
 
@@ -14,10 +15,10 @@ class ReviewsScreen extends StatefulWidget {
   });
 
   @override
-  State<ReviewsScreen> createState() => _ReviewsScreenState();
+  ConsumerState<ReviewsScreen> createState() => _ReviewsScreenState(); // Changed createState
 }
 
-class _ReviewsScreenState extends State<ReviewsScreen> {
+class _ReviewsScreenState extends ConsumerState<ReviewsScreen> { // Changed State
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _commentController = TextEditingController();
@@ -47,7 +48,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
     });
 
     try {
-      final reviews = await SupabaseService.getReviewsForBusiness(widget.business.id);
+      final supabaseService = ref.read(supabaseServiceProvider); // Get SupabaseService via Riverpod
+      final reviews = await supabaseService.getReviewsForBusiness(widget.business.id); // Use instance method
       setState(() {
         _reviews = reviews;
         _isLoading = false;
@@ -70,7 +72,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
     });
 
     try {
-      final review = await SupabaseService.submitReview(
+      final supabaseService = ref.read(supabaseServiceProvider); // Get SupabaseService via Riverpod
+      final review = await supabaseService.submitReview( // Use instance method
         businessId: widget.business.id,
         userName: _nameController.text.trim(),
         rating: _selectedRating,

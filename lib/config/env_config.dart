@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 
 /// Environment configuration for the Mawjood application.
 ///
@@ -56,8 +57,6 @@ class EnvConfig {
       supabaseAnonKey: key ?? '',
     );
   }
-// ... rest of the file
-
 
   /// Validates that the configuration has been set up correctly.
   bool get isConfigured {
@@ -84,3 +83,8 @@ class EnvConfig {
     return null;
   }
 }
+
+// Riverpod provider for EnvConfig
+final envConfigProvider = Provider<EnvConfig>((ref) {
+  return EnvConfig.load();
+});

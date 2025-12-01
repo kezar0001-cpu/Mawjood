@@ -1,27 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/category.dart';
-import '../repositories/category_repository.dart';
+import '../repositories/category_repository.dart'; // Import the correct provider
 import '../services/cache_service.dart';
-import '../services/connectivity_service.dart';
-
-// Repository provider
-final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
-  return CategoryRepository();
-});
+import '../services/connectivity_service.dart'; // Import the new connectivity provider
 
 // Categories provider
 final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   final repository = ref.watch(categoryRepositoryProvider);
-  final connectivityService = ConnectivityService();
+  final isOnline = ref.watch(connectivityStatusProvider); // Use the new provider
+  final cacheService = ref.watch(cacheServiceProvider); // Get CacheService instance
 
   // Try cache first
-  final cachedCategories = await CacheService.getCachedCategories();
+  final cachedCategories = await cacheService.getCachedCategories();
   if (cachedCategories != null && cachedCategories.isNotEmpty) {
     return cachedCategories;
   }
 
   // If offline and no cache, return empty
-  if (!connectivityService.isOnline) {
+  if (!isOnline) { // Use the online status from the provider
     return [];
   }
 
@@ -31,13 +27,13 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
 
     // Cache the results
     if (categories.isNotEmpty) {
-      await CacheService.cacheCategories(categories);
+      await cacheService.cacheCategories(categories);
     }
 
     return categories;
   } catch (e) {
     // If API fails, try cache even if expired
-    final expiredCache = await CacheService.getCachedCategories();
+    final expiredCache = await cacheService.getCachedCategories();
     if (expiredCache != null && expiredCache.isNotEmpty) {
       return expiredCache;
     }

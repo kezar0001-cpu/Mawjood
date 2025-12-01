@@ -1,17 +1,22 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 import '../models/business.dart';
 import '../models/category.dart';
 
 class CacheService {
-  static const String _categoriesBox = 'categories_cache';
-  static const String _businessesBox = 'businesses_cache';
-  static const String _recentSearchesBox = 'recent_searches';
+  final String _categoriesBox = 'categories_cache';
+  final String _businessesBox = 'businesses_cache';
+  final String _recentSearchesBox = 'recent_searches';
 
-  static const Duration _categoriesCacheDuration = Duration(hours: 24);
-  static const Duration _businessesCacheDuration = Duration(hours: 1);
-  static const int _maxRecentSearches = 10;
+  final Duration _categoriesCacheDuration = const Duration(hours: 24);
+  final Duration _businessesCacheDuration = const Duration(hours: 1);
+  final int _maxRecentSearches = 10;
 
-  static Future<void> initialize() async {
+  // Private constructor
+  CacheService._();
+
+  // Factory constructor for asynchronous initialization
+  static Future<CacheService> create() async {
     await Hive.initFlutter();
 
     // Register adapters
@@ -19,13 +24,16 @@ class CacheService {
     Hive.registerAdapter(CategoryAdapter());
 
     // Open boxes
-    await Hive.openBox<Category>(_categoriesBox);
-    await Hive.openBox<Business>(_businessesBox);
-    await Hive.openBox<String>(_recentSearchesBox);
+    await Hive.openBox<Category>('categories_cache');
+    await Hive.openBox<Business>('businesses_cache');
+    await Hive.openBox<String>('recent_searches');
+    await Hive.openBox('timestamps'); // Open timestamps box here
+
+    return CacheService._();
   }
 
   // Categories Cache
-  static Future<void> cacheCategories(List<Category> categories) async {
+  Future<void> cacheCategories(List<Category> categories) async {
     final box = Hive.box<Category>(_categoriesBox);
     await box.clear();
 
@@ -37,7 +45,7 @@ class CacheService {
     await _storeTimestamp(_categoriesBox);
   }
 
-  static Future<List<Category>?> getCachedCategories() async {
+  Future<List<Category>?> getCachedCategories() async {
     final box = Hive.box<Category>(_categoriesBox);
 
     if (box.isEmpty) return null;
@@ -55,7 +63,7 @@ class CacheService {
   }
 
   // Businesses Cache (by category)
-  static Future<void> cacheBusinesses(String categoryId, List<Business> businesses) async {
+  Future<void> cacheBusinesses(String categoryId, List<Business> businesses) async {
     final box = Hive.box<Business>(_businessesBox);
 
     // Clear old businesses for this category
@@ -74,7 +82,7 @@ class CacheService {
     await _storeTimestamp('${_businessesBox}_$categoryId');
   }
 
-  static Future<List<Business>?> getCachedBusinesses(String categoryId) async {
+  Future<List<Business>?> getCachedBusinesses(String categoryId) async {
     final box = Hive.box<Business>(_businessesBox);
 
     final isCacheValid = await _isCacheValid(
@@ -96,7 +104,7 @@ class CacheService {
   }
 
   // Search Results Cache (generic key-value)
-  static Future<void> cacheSearchResults(String query, List<Business> businesses) async {
+  Future<void> cacheSearchResults(String query, List<Business> businesses) async {
     final box = Hive.box<Business>(_businessesBox);
     final cacheKey = 'search_${query.toLowerCase()}';
 
@@ -116,7 +124,7 @@ class CacheService {
     await _storeTimestamp('search_$query');
   }
 
-  static Future<List<Business>?> getCachedSearchResults(String query) async {
+  Future<List<Business>?> getCachedSearchResults(String query) async {
     final box = Hive.box<Business>(_businessesBox);
     final cacheKey = 'search_${query.toLowerCase()}';
 
@@ -140,7 +148,7 @@ class CacheService {
   }
 
   // Recent Searches
-  static Future<void> addRecentSearch(String query) async {
+  Future<void> addRecentSearch(String query) async {
     final box = Hive.box<String>(_recentSearchesBox);
 
     // Remove if already exists
@@ -163,27 +171,27 @@ class CacheService {
     }
   }
 
-  static Future<List<String>> getRecentSearches() async {
+  Future<List<String>> getRecentSearches() async {
     final box = Hive.box<String>(_recentSearchesBox);
 
     final searches = box.values.toList();
     return searches.reversed.toList(); // Most recent first
   }
 
-  static Future<void> clearRecentSearches() async {
+  Future<void> clearRecentSearches() async {
     final box = Hive.box<String>(_recentSearchesBox);
     await box.clear();
   }
 
   // Helper: Store timestamp
-  static Future<void> _storeTimestamp(String key) async {
-    final timestampBox = await Hive.openBox('timestamps');
+  Future<void> _storeTimestamp(String key) async {
+    final timestampBox = Hive.box('timestamps');
     await timestampBox.put(key, DateTime.now().millisecondsSinceEpoch);
   }
 
   // Helper: Check cache validity
-  static Future<bool> _isCacheValid(String key, Duration validDuration) async {
-    final timestampBox = await Hive.openBox('timestamps');
+  Future<bool> _isCacheValid(String key, Duration validDuration) async {
+    final timestampBox = Hive.box('timestamps');
     final timestamp = timestampBox.get(key);
 
     if (timestamp == null) return false;
@@ -195,10 +203,17 @@ class CacheService {
   }
 
   // Clear all caches
-  static Future<void> clearAllCaches() async {
+  Future<void> clearAllCaches() async {
     await Hive.box<Category>(_categoriesBox).clear();
     await Hive.box<Business>(_businessesBox).clear();
-    final timestampBox = await Hive.openBox('timestamps');
+    final timestampBox = Hive.box('timestamps');
     await timestampBox.clear();
   }
 }
+
+// Riverpod provider for CacheService
+final cacheServiceProvider = Provider<CacheService>((ref) {
+  // We assume Hive.initFlutter() and adapter registration happens before this.
+  // The CacheService.create() factory handles this in main.dart's setup.
+  return CacheService._();
+});

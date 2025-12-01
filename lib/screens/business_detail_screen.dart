@@ -2,22 +2,39 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/business.dart';
-import '../models/business_claim.dart';
-import '../repositories/business_repository.dart';
+import '../models/business_claim.dart'; // Ensure this is correctly imported
+import '../models/review.dart'; // Ensure this is correctly imported
+import '../providers/business_provider.dart'; // For businessByIdProvider
+import '../repositories/business_repository.dart'; // Import for businessRepositoryProvider
 import '../services/supabase_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/business_card.dart';
 import '../widgets/mawjood_action_button.dart';
-import 'reviews_screen.dart';
+import 'reviews_screen.dart'; // Assuming ReviewsScreen exists
 
-class BusinessDetailScreen extends StatefulWidget {
+// A provider for fetching reviews for a specific business
+final reviewsForBusinessProvider =
+    FutureProvider.family<List<Review>, String>((ref, businessId) async {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return supabaseService.getReviewsForBusiness(businessId);
+});
+
+// A provider for fetching related businesses for a specific category
+final relatedBusinessesProvider =
+    FutureProvider.family<List<Business>, String>((ref, categoryId) async {
+  if (categoryId.isEmpty) return [];
+  return ref.watch(businessRepositoryProvider).fetchByCategory(categoryId);
+});
+
+class BusinessDetailScreen extends ConsumerStatefulWidget {
   const BusinessDetailScreen({
     super.key,
     required this.businessId,
-    this.initialBusiness,
+    this.initialBusiness, // Used for initial display before full load
   });
 
   static const String routeName = '/business-detail';
@@ -26,57 +43,29 @@ class BusinessDetailScreen extends StatefulWidget {
   final Business? initialBusiness;
 
   @override
-  State<BusinessDetailScreen> createState() => _BusinessDetailScreenState();
+  ConsumerState<BusinessDetailScreen> createState() => _BusinessDetailScreenState();
 }
 
-class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
-  final BusinessRepository _repository = BusinessRepository();
-  Business? _business;
-  late Future<List<Business>> _relatedFuture;
-  bool _isLoading = true;
-  String? _errorMessage;
+class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
+  Business? _currentBusiness; // Local state to hold business data once loaded
 
   @override
   void initState() {
     super.initState();
-    _business = widget.initialBusiness;
-    _relatedFuture = Future.value([]);
-    _loadBusiness();
+    _currentBusiness = widget.initialBusiness;
   }
 
-  Future<void> _loadBusiness() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    final fetched = await _repository.fetchById(widget.businessId);
-    final resolved = fetched ?? _business;
-
-    if (resolved == null) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'لا توجد بيانات حاليا';
-      });
-      return;
-    }
-
-    setState(() {
-      _business = resolved;
-      _relatedFuture = _loadRelatedBusinesses(resolved.categoryId ?? '');
-      _isLoading = false;
-    });
-  }
-
-  Future<List<Business>> _loadRelatedBusinesses(String categoryId) async {
-    final results = await _repository.fetchByCategory(categoryId);
-    return results.where((b) => b.id != widget.businessId).toList();
+  // Helper to get the business from either initial or loaded data
+  Business? get _resolvedBusiness {
+    // Try to get from provider first, then initial, then local state
+    return ref.watch(businessByIdProvider(widget.businessId)).value ?? _currentBusiness;
   }
 
   Future<void> _launch(Uri uri) async {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تعذر فتح الرابط حالياً')),
       );
@@ -84,7 +73,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   void _callBusiness() {
-    final phone = _business?.phone ?? '';
+    final business = _resolvedBusiness;
+    final phone = business?.phone ?? '';
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('رقم الاتصال غير متوفر')),
@@ -95,7 +85,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   void _openWhatsApp() {
-    final business = _business;
+    final business = _resolvedBusiness;
     if (business == null) return;
 
     final whatsappNumber = business.whatsapp ?? '';
@@ -106,20 +96,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       return;
     }
 
-    // Remove any spaces, dashes, or special characters from the number
     final cleanNumber = whatsappNumber.replaceAll(RegExp(r'[^\d+]'), '');
-
-    // Pre-filled message in Arabic
     final message = Uri.encodeComponent('مرحباً، أود الاستفسار عن ${business.name}');
-
-    // Use wa.me URL scheme
     final whatsappUrl = Uri.parse('https://wa.me/$cleanNumber?text=$message');
 
     _launch(whatsappUrl);
   }
 
   Future<void> _shareBusiness() async {
-    final business = _business;
+    final business = _resolvedBusiness;
     if (business == null) return;
 
     final shareText = [
@@ -137,7 +122,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   void _openReviews() {
-    final business = _business;
+    final business = _resolvedBusiness;
     if (business == null) return;
 
     Navigator.push(
@@ -145,15 +130,19 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       MaterialPageRoute(
         builder: (_) => ReviewsScreen(business: business),
       ),
-    ).then((_) => _loadBusiness()); // Refresh business data when returning
+    ).then((_) {
+      // Refresh reviews and business data when returning from ReviewsScreen
+      ref.invalidate(reviewsForBusinessProvider(business.id));
+      ref.invalidate(businessByIdProvider(business.id));
+    });
   }
 
   Future<void> _claimBusiness() async {
-    final business = _business;
+    final business = _resolvedBusiness;
     if (business == null) return;
 
-    // Check if user already has a claim
-    final existingClaim = await SupabaseService.getBusinessClaimForUser(business.id);
+    final supabaseService = ref.read(supabaseServiceProvider); // Get service instance
+    final existingClaim = await supabaseService.getBusinessClaimForUser(business.id);
 
     if (existingClaim != null) {
       if (!mounted) return;
@@ -165,7 +154,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       return;
     }
 
-    // Show claim dialog
     if (!mounted) return;
     _showClaimDialog();
   }
@@ -247,14 +235,16 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               onPressed: () async {
                 final isValid = formKey.currentState?.validate() ?? false;
                 if (isValid) {
-                  final currentBusiness = _business;
+                  final currentBusiness = _resolvedBusiness;
                   if (currentBusiness == null) {
+                    if (!mounted) return;
                     Navigator.pop(context);
                     return;
                   }
 
+                  if (!mounted) return;
                   Navigator.pop(context);
-                  final claim = await SupabaseService.submitBusinessClaim(
+                  final claim = await ref.read(supabaseServiceProvider).submitBusinessClaim(
                     businessId: currentBusiness.id,
                     userName: nameController.text.trim(),
                     userEmail: emailController.text.trim(),
@@ -288,7 +278,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   void _openMaps() {
-    final business = _business;
+    final business = _resolvedBusiness;
     if (business == null) return;
 
     final lat = business.latitude;
@@ -301,14 +291,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       return;
     }
 
-    // FIXED: Use Web-compatible URL scheme
-    // For Web and all platforms, use Google Maps HTTPS URL which works universally
     final Uri mapsUrl;
     if (kIsWeb) {
-      // Web: Use Google Maps web URL
       mapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     } else {
-      // Mobile: Use universal https scheme that works on both iOS and Android
       mapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     }
 
@@ -317,297 +303,380 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final business = _business;
-    final theme = Theme.of(context).textTheme;
+    final businessAsync = ref.watch(businessByIdProvider(widget.businessId));
+    final reviewsAsync = ref.watch(reviewsForBusinessProvider(widget.businessId));
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(business?.name ?? 'تفاصيل النشاط'),
+          title: Text(_resolvedBusiness?.name ?? 'تفاصيل النشاط'),
           centerTitle: true,
           elevation: 0,
         ),
-        body: _isLoading
-            ? const _DetailShimmerLayout()
-            : business == null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          _errorMessage ?? 'لا توجد بيانات حاليا',
-                          style: theme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        body: businessAsync.when(
+          data: (business) {
+            if (business == null) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'لا توجد بيانات حاليا',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              );
+            }
+            // Update _currentBusiness with the fully loaded data
+            _currentBusiness = business;
+
+            return CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _HeroHeader(imageUrl: business.primaryImage),
+                      Padding(
+                        padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    business.name,
+                                    textAlign: TextAlign.right,
+                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.darkText,
+                                    ),
+                                  ),
+                                ),
+                                if (business.verified) ...[
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.verified,
+                                    size: 24,
+                                    color: Colors.blue,
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    (business.city ?? '').isNotEmpty ? (business.city ?? '') : 'غير محدد',
+                                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                const Icon(Icons.star_rounded, color: AppColors.accentGold, size: 22),
+                                const SizedBox(width: 4),
+                                Text(
+                                  (business.rating ?? 0.0).toStringAsFixed(1),
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.darkText,
+                                  ),
+                                ),
+                                if (business.reviewCount > 0) ...[
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '(${business.reviewCount} تقييمات)',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              business.description ?? '',
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black87),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: MawjoodActionButton(
+                                    icon: Icons.call_rounded,
+                                    label: 'اتصال',
+                                    onTap: _callBusiness,
+                                    backgroundColor: AppColors.primary.withOpacity(0.12),
+                                    foregroundColor: AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: MawjoodActionButton(
+                                    icon: Icons.chat_rounded,
+                                    label: 'واتساب',
+                                    onTap: _openWhatsApp,
+                                    backgroundColor: AppColors.primaryLight.withOpacity(0.16),
+                                    foregroundColor: AppColors.darkText,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: MawjoodActionButton(
+                                    icon: Icons.share_rounded,
+                                    label: 'مشاركة',
+                                    onTap: _shareBusiness,
+                                    backgroundColor: AppColors.accentGold.withOpacity(0.2),
+                                    foregroundColor: AppColors.darkText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: MawjoodActionButton(
+                                    icon: Icons.rate_review,
+                                    label: 'التقييمات',
+                                    onTap: _openReviews,
+                                    backgroundColor: Colors.purple.withOpacity(0.1),
+                                    foregroundColor: Colors.purple,
+                                  ),
+                                ),
+                                if (!business.verified) ...[
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: MawjoodActionButton(
+                                      icon: Icons.verified_user,
+                                      label: 'مطالبة',
+                                      onTap: _claimBusiness,
+                                      backgroundColor: Colors.orange.withOpacity(0.1),
+                                      foregroundColor: Colors.orange,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                    )
-                  : CustomScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _HeroHeader(imageUrl: business.primaryImage),
-                              Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 8),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            business.name,
-                                            textAlign: TextAlign.right,
-                                            style: theme.headlineSmall?.copyWith(
-                                              fontWeight: FontWeight.w800,
-                                              color: AppColors.darkText,
-                                            ),
-                                          ),
-                                        ),
-                                        if (business.verified) ...[
-                                          const SizedBox(width: 8),
-                                          const Icon(
-                                            Icons.verified,
-                                            size: 24,
-                                            color: Colors.blue,
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.primary.withOpacity(0.08),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            (business.city ?? '').isNotEmpty ? (business.city ?? '') : 'غير محدد',
-                                            style: theme.labelLarge?.copyWith(
-                                              color: AppColors.primary,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        const Icon(Icons.star_rounded, color: AppColors.accentGold, size: 22),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          (business.rating ?? 0.0).toStringAsFixed(1),
-                                          style: theme.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.darkText,
-                                          ),
-                                        ),
-                                        if (business.reviewCount > 0) ...[
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '(${business.reviewCount} تقييم)',
-                                            style: theme.bodyMedium?.copyWith(
-                                              color: Colors.black54,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      business.description ?? '',
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.right,
-                                      style: theme.bodyLarge?.copyWith(color: Colors.black87),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: MawjoodActionButton(
-                                            icon: Icons.call_rounded,
-                                            label: 'اتصال',
-                                            onTap: _callBusiness,
-                                            backgroundColor: AppColors.primary.withOpacity(0.12),
-                                            foregroundColor: AppColors.primary,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: MawjoodActionButton(
-                                            icon: Icons.chat_rounded,
-                                            label: 'واتساب',
-                                            onTap: _openWhatsApp,
-                                            backgroundColor: AppColors.primaryLight.withOpacity(0.16),
-                                            foregroundColor: AppColors.darkText,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: MawjoodActionButton(
-                                            icon: Icons.share_rounded,
-                                            label: 'مشاركة',
-                                            onTap: _shareBusiness,
-                                            backgroundColor: AppColors.accentGold.withOpacity(0.2),
-                                            foregroundColor: AppColors.darkText,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: MawjoodActionButton(
-                                            icon: Icons.rate_review,
-                                            label: 'التقييمات',
-                                            onTap: _openReviews,
-                                            backgroundColor: Colors.purple.withOpacity(0.1),
-                                            foregroundColor: Colors.purple,
-                                          ),
-                                        ),
-                                        if (!business.verified) ...[
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: MawjoodActionButton(
-                                              icon: Icons.verified_user,
-                                              label: 'مطالبة',
-                                              onTap: _claimBusiness,
-                                              backgroundColor: Colors.orange.withOpacity(0.1),
-                                              foregroundColor: Colors.orange,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ],
+                      const Divider(height: 28, thickness: 1, color: Color(0xFFECE9DF)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _SectionTitle(title: 'نبذة عن المحل'),
+                            const SizedBox(height: 8),
+                            Text(
+                              business.description ?? '',
+                              textAlign: TextAlign.right,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black87),
+                            ),
+                            const SizedBox(height: 20),
+                            _SectionTitle(title: 'الموقع'),
+                            const SizedBox(height: 10),
+                            _MapPreview(
+                              address: business.displayAddress,
+                              latitude: business.latitude,
+                              longitude: business.longitude,
+                              businessName: business.name,
+                              onTap: _openMaps,
+                            ),
+                            if (business.displayAddress.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Text(
+                                business.displayAddress,
+                                textAlign: TextAlign.right,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.darkText,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const Divider(height: 28, thickness: 1, color: Color(0xFFECE9DF)),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _SectionTitle(title: 'نبذة عن المحل'),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      business.description ?? '',
-                                      textAlign: TextAlign.right,
-                                      style: theme.bodyMedium?.copyWith(color: Colors.black87),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    _SectionTitle(title: 'الموقع'),
-                                    const SizedBox(height: 10),
-                                    _MapPreview(
-                                      address: business.displayAddress,
-                                      latitude: business.latitude,
-                                      longitude: business.longitude,
-                                      businessName: business.name,
-                                      onTap: _openMaps,
-                                    ),
-                                    if (business.displayAddress.isNotEmpty) ...[
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        business.displayAddress,
-                                        textAlign: TextAlign.right,
-                                        style: theme.bodyMedium?.copyWith(
+                            ],
+                            const SizedBox(height: 20),
+                            if (business.features.isNotEmpty) ...[
+                              _SectionTitle(title: 'مميزات'),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: business.features
+                                    .map(
+                                      (tag) => Chip(
+                                        backgroundColor: AppColors.neutral,
+                                        labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                          fontWeight: FontWeight.w700,
                                           color: AppColors.darkText,
-                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        label: Text(tag),
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
                                         ),
                                       ),
-                                    ],
-                                    const SizedBox(height: 20),
-                                    if (business.features.isNotEmpty) ...[
-                                      _SectionTitle(title: 'مميزات'),
-                                      const SizedBox(height: 10),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: business.features
-                                            .map(
-                                              (tag) => Chip(
-                                                backgroundColor: AppColors.neutral,
-                                                labelStyle: theme.labelLarge?.copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                  color: AppColors.darkText,
-                                                ),
-                                                label: Text(tag),
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(14),
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
-                                      ),
-                                    ],
-                                  ],
-                                ),
+                                    )
+                                    .toList(),
                               ),
-                              FutureBuilder<List<Business>>(
-                                future: _relatedFuture,
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return const _RelatedShimmer();
-                                  }
-                                  final related = snapshot.data ?? [];
-                                  if (related.isEmpty) return const SizedBox.shrink();
-
-                                  return Column(
+                            ],
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 28, thickness: 1, color: Color(0xFFECE9DF)),
+                      // Display Reviews from Riverpod provider
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _SectionTitle(title: 'تقييمات العملاء'), // Customer Reviews
+                      ),
+                      reviewsAsync.when(
+                        data: (reviews) {
+                          if (reviews.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Text('لا توجد تقييمات حتى الآن. كن أول من يقيّم!'), // No reviews yet. Be the first to review!
+                            );
+                          }
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: reviews.length,
+                            itemBuilder: (context, index) {
+                              final review = reviews[index];
+                              return Card(
+                                margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const SizedBox(height: 28),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        child: _SectionTitle(title: 'اقتراحات مشابهة'),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            review.userName ?? 'مستخدم مجهول', // Anonymous User
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                          ),
+                                          const Spacer(),
+                                          const Icon(Icons.star, size: 18, color: AppColors.accentGold),
+                                          Text(review.rating.toStringAsFixed(1)),
+                                        ],
                                       ),
-                                      const SizedBox(height: 12),
-                                      SizedBox(
-                                        height: 190,
-                                        child: ListView.separated(
-                                          padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
-                                          scrollDirection: Axis.horizontal,
-                                          physics: const BouncingScrollPhysics(),
-                                          itemCount: related.length,
-                                          separatorBuilder: (_, __) => const SizedBox(width: 12),
-                                          itemBuilder: (context, index) {
-                                            final item = related[index];
-                                            return SizedBox(
-                                              width: 280,
-                                              child: BusinessCard(
-                                                business: item,
-                                                categoryLabel: item.city,
-                                                onTap: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (_) => BusinessDetailScreen(
-                                                        businessId: item.id,
-                                                        initialBusiness: item,
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                                onCall: (item.phone ?? '').isNotEmpty
-                                                    ? () => _launch(Uri.parse('tel:${item.phone ?? ''}'))
-                                                    : null,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
+                                      const SizedBox(height: 6.0),
+                                      if (review.comment != null && review.comment!.isNotEmpty)
+                                        Text(review.comment!),
                                     ],
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 24),
-                            ],
-                          ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (err, stack) => Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text('خطأ في تحميل التقييمات: $err'), // Error loading reviews
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 24),
+                      // Related Businesses
+                      _buildRelatedBusinesses(context, ref, business.categoryId),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+          loading: () => const _DetailShimmerLayout(),
+          error: (err, stack) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'خطأ في تحميل تفاصيل النشاط: $err',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRelatedBusinesses(BuildContext context, WidgetRef ref, String? categoryId) {
+    if (categoryId == null || categoryId.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final relatedAsync = ref.watch(relatedBusinessesProvider(categoryId));
+
+    return relatedAsync.when(
+      data: (related) {
+        // Filter out the current business from related list
+        final filteredRelated = related.where((b) => b.id != widget.businessId).toList();
+        if (filteredRelated.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 28),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _SectionTitle(title: 'اقتراحات مشابهة'),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 190,
+              child: ListView.separated(
+                padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: filteredRelated.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final item = filteredRelated[index];
+                  return SizedBox(
+                    width: 280,
+                    child: BusinessCard(
+                      business: item,
+                      categoryLabel: item.city, // Assuming city can be a category label here
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BusinessDetailScreen(
+                              businessId: item.id,
+                              initialBusiness: item,
+                            ),
+                          ),
+                        );
+                      },
+                      onCall: (item.phone ?? '').isNotEmpty
+                          ? () => _launch(Uri.parse('tel:${item.phone ?? ''}'))
+                          : null,
                     ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const _RelatedShimmer(),
+      error: (err, stack) => Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text('خطأ في تحميل الأعمال المشابهة: $err'),
       ),
     );
   }

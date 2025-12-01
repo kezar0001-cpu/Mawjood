@@ -3,33 +3,36 @@ import '../services/cache_service.dart';
 
 // Recent searches state notifier
 class RecentSearchesNotifier extends StateNotifier<List<String>> {
-  RecentSearchesNotifier() : super([]) {
+  final CacheService _cacheService; // Add CacheService as a dependency
+
+  RecentSearchesNotifier(this._cacheService) : super([]) {
     _loadSearches();
   }
 
   Future<void> _loadSearches() async {
-    state = await CacheService.getRecentSearches();
+    state = await _cacheService.getRecentSearches();
   }
 
   Future<void> addSearch(String query) async {
     if (query.trim().isEmpty) return;
 
-    await CacheService.addRecentSearch(query.trim());
-    state = await CacheService.getRecentSearches();
+    await _cacheService.addRecentSearch(query.trim());
+    state = await _cacheService.getRecentSearches();
   }
 
   Future<void> clearAll() async {
-    await CacheService.clearRecentSearches();
+    await _cacheService.clearRecentSearches();
     state = [];
   }
 
   Future<void> refresh() async {
-    state = await CacheService.getRecentSearches();
+    state = await _cacheService.getRecentSearches();
   }
 }
 
 // Recent searches provider
 final recentSearchesProvider =
     StateNotifierProvider<RecentSearchesNotifier, List<String>>((ref) {
-  return RecentSearchesNotifier();
+  final cacheService = ref.watch(cacheServiceProvider); // Watch cacheService
+  return RecentSearchesNotifier(cacheService);
 });

@@ -1,36 +1,24 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ConnectivityService {
-  static final ConnectivityService _instance = ConnectivityService._internal();
-  factory ConnectivityService() => _instance;
-  ConnectivityService._internal();
+// StateNotifier for managing connectivity status
+class ConnectivityStatusNotifier extends StateNotifier<bool> {
+  final Connectivity _connectivity;
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
 
-  final Connectivity _connectivity = Connectivity();
-  StreamController<bool>? _connectionStatusController;
-
-  bool _isOnline = true;
-  bool get isOnline => _isOnline;
-
-  Stream<bool> get onConnectivityChanged {
-    _connectionStatusController ??= StreamController<bool>.broadcast();
-    return _connectionStatusController!.stream;
+  ConnectivityStatusNotifier(this._connectivity) : super(true) {
+    _initConnectivity();
   }
 
-  Future<void> initialize() async {
+  Future<void> _initConnectivity() async {
     // Check initial connectivity
     final results = await _connectivity.checkConnectivity();
-    _isOnline = _isConnected(results);
+    state = _isConnected(results);
 
     // Listen to connectivity changes
-    _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> newResults) {
-      final wasOnline = _isOnline;
-      _isOnline = _isConnected(newResults);
-
-      // Only emit if status changed
-      if (wasOnline != _isOnline) {
-        _connectionStatusController?.add(_isOnline);
-      }
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> newResults) {
+      state = _isConnected(newResults);
     });
   }
 
@@ -38,7 +26,14 @@ class ConnectivityService {
     return !results.contains(ConnectivityResult.none);
   }
 
+  @override
   void dispose() {
-    _connectionStatusController?.close();
+    _connectivitySubscription.cancel();
+    super.dispose();
   }
 }
+
+// Riverpod provider for ConnectivityStatusNotifier
+final connectivityStatusProvider = StateNotifierProvider<ConnectivityStatusNotifier, bool>((ref) {
+  return ConnectivityStatusNotifier(Connectivity());
+});
