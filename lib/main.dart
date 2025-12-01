@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'config/theme.dart';
 import 'models/business.dart';
 import 'models/category.dart';
 import 'screens/business_detail_screen.dart';
@@ -15,75 +15,15 @@ import 'screens/onboarding_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
 import 'services/supabase_service.dart';
-import 'utils/app_colors.dart';
 import 'utils/app_text.dart';
 import 'widgets/offline_indicator.dart';
 
-ThemeData buildTheme() {
-  final base = ThemeData(
-    colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
-    primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: Colors.white,
-    useMaterial3: true,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.primary,
-      elevation: 0,
-      foregroundColor: Colors.white,
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
-      ),
-    ),
-    cardTheme: CardThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    ),
-  );
-
-  try {
-    // Create a TextTheme that uses Cairo for all styles, starting from the comprehensive base TextTheme
-    // This ensures that no style is left null.
-    final googleFontsTheme = GoogleFonts.cairoTextTheme(base.textTheme);
-
-    return base.copyWith(
-      textTheme: googleFontsTheme.apply(
-        bodyColor: AppColors.darkText,
-        displayColor: AppColors.darkText,
-      ),
-    );
-  } catch (e) {
-    debugPrint('⚠️ [THEME] GoogleFonts failed to load, using fallback: $e');
-    return base.copyWith(
-      textTheme: base.textTheme.apply(
-        bodyColor: AppColors.darkText,
-        displayColor: AppColors.darkText,
-        fontFamily: 'Arial',
-      ),
-    );
-  }
-}
-
 Future<void> main() async {
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    debugPrint('═══════════════════════════════════════════════════');
-    debugPrint('Flutter Error Caught:');
-    debugPrint('Error: ${details.exception}');
-    debugPrint('Stack: ${details.stack}');
-    debugPrint('Library: ${details.library}');
-    debugPrint('Context: ${details.context}');
-    debugPrint('═══════════════════════════════════════════════════');
-  };
-
   WidgetsFlutterBinding.ensureInitialized();
 
   debugPrint('🚀 [MAIN] Starting Mawjood initialization...');
-  debugPrint('🌐 [MAIN] Platform: ${kIsWeb ? "WEB" : "MOBILE"}');
 
+  // 1. Load Environment Variables
   try {
     await dotenv.load(fileName: ".env");
     debugPrint('✅ [MAIN] .env file loaded successfully');
@@ -91,116 +31,22 @@ Future<void> main() async {
     debugPrint('ℹ️ [MAIN] .env file not found (using build flags if available)');
   }
 
-  final initFuture = SupabaseService.initialize();
+  // 2. Initialize Supabase (Non-blocking for UI startup, but required for data)
+  final initFuture = SupabaseService.initialize().catchError((e) {
+    debugPrint('❌ [MAIN] Supabase initialization error: $e');
+  });
 
-  try {
-    debugPrint('⏳ [MAIN] Waiting for Supabase initialization...');
-    await initFuture;
-    debugPrint('✅ [MAIN] Supabase initialization completed successfully');
-  } catch (e, stackTrace) {
-    debugPrint('❌ [MAIN] Supabase initialization error: ${e.toString()}');
-    debugPrint('Stack trace: $stackTrace');
-  }
-
-  debugPrint('🎬 [MAIN] Running app...');
   runApp(
     ProviderScope(
-      child: MawjoodBootstrap(initFuture: initFuture),
+      child: MawjoodApp(initFuture: initFuture),
     ),
   );
 }
-// ... (rest of the file remains the same)
-
-// ... (rest of the file remains the same)
-
-
-class MawjoodBootstrap extends StatefulWidget {
-  const MawjoodBootstrap({super.key, required this.initFuture});
-
-  final Future<void> initFuture;
-
-  @override
-  State<MawjoodBootstrap> createState() => _MawjoodBootstrapState();
-}
-
-class _MawjoodBootstrapState extends State<MawjoodBootstrap> {
-  late Future<void> _initFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _initFuture = widget.initFuture;
-  }
-
-  void _retryInitialization() {
-    setState(() {
-      _initFuture = SupabaseService.initialize();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _initFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const MaterialApp(
-            debugShowCheckedModeBanner: false,
-            home: Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: buildTheme(),
-            home: Directionality(
-              textDirection: TextDirection.rtl,
-              child: Scaffold(
-                body: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.cloud_off, size: 48, color: AppColors.primary),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'تعذر تهيئة التطبيق',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          snapshot.error.toString(),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.black54),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _retryInitialization,
-                          child: const Text('إعادة المحاولة'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
-
-        return const MawjoodApp();
-      },
-    );
-  }
-}
 
 class MawjoodApp extends StatefulWidget {
-  const MawjoodApp({super.key});
+  final Future<void> initFuture;
+
+  const MawjoodApp({super.key, required this.initFuture});
 
   @override
   State<MawjoodApp> createState() => _MawjoodAppState();
@@ -213,27 +59,20 @@ class _MawjoodAppState extends State<MawjoodApp> {
   @override
   void initState() {
     super.initState();
-    debugPrint('📱 [APP] MawjoodApp initState called');
     _checkOnboardingStatus();
   }
 
   Future<void> _checkOnboardingStatus() async {
-    debugPrint('🔍 [APP] Checking onboarding status...');
     try {
       final prefs = await SharedPreferences.getInstance();
-      final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
-
-      debugPrint('✓ [APP] Onboarding status: ${hasSeenOnboarding ? "completed" : "not shown"}');
-
       setState(() {
-        _hasSeenOnboarding = hasSeenOnboarding;
+        _hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
         _isLoading = false;
       });
-
-      debugPrint('📍 [APP] Will navigate to: ${hasSeenOnboarding ? "HomeScreen" : "OnboardingScreen"}');
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint('❌ [APP] Error checking onboarding status: $e');
-      debugPrint('Stack: $stackTrace');
+      // Fallback: assume not seen if error, or just show home to be safe? 
+      // Safer to show onboarding if we can't read prefs.
       setState(() {
         _isLoading = false;
       });
@@ -243,12 +82,11 @@ class _MawjoodAppState extends State<MawjoodApp> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const MaterialApp(
+      return MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
+        theme: AppTheme.lightTheme,
+        home: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
         ),
       );
     }
@@ -256,7 +94,11 @@ class _MawjoodAppState extends State<MawjoodApp> {
     return MaterialApp(
       title: AppText.appName,
       debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
+      
+      // ✅ USE THE SAFE THEME
+      theme: AppTheme.lightTheme,
+      
+      // ✅ RTL SUPPORT
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [
@@ -264,13 +106,16 @@ class _MawjoodAppState extends State<MawjoodApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+
       initialRoute: _hasSeenOnboarding ? HomeScreen.routeName : OnboardingScreen.routeName,
+      
       routes: {
         OnboardingScreen.routeName: (context) => const OnboardingScreen(),
         HomeScreen.routeName: (context) => OfflineIndicator(child: const HomeScreen()),
         SearchScreen.routeName: (context) => OfflineIndicator(child: const SearchScreen()),
         SettingsScreen.routeName: (context) => const SettingsScreen(),
       },
+      
       onGenerateRoute: (settings) {
         if (settings.name == BusinessListScreen.routeName) {
           final args = settings.arguments;
