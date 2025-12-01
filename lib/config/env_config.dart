@@ -36,10 +36,10 @@ class EnvConfig {
   /// Returns a user-friendly error message if configuration is invalid.
   String? get configurationError {
     if (supabaseUrl.isEmpty) {
-      return 'SUPABASE_URL is not defined in .env file';
+      return 'SUPABASE_URL is not defined (checked .env and --dart-define)';
     }
     if (supabaseAnonKey.isEmpty) {
-      return 'SUPABASE_ANON_KEY is not defined in .env file';
+      return 'SUPABASE_ANON_KEY is not defined (checked .env and --dart-define)';
     }
     if (!supabaseUrl.startsWith('https://')) {
       return 'Supabase URL must start with https://';

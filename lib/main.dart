@@ -87,7 +87,7 @@ Future<void> main() async {
     await dotenv.load(fileName: ".env");
     debugPrint('✅ [MAIN] .env file loaded successfully');
   } catch (e) {
-    debugPrint('❌ [MAIN] Error loading .env file: $e');
+    debugPrint('ℹ️ [MAIN] .env file not found (using build flags if available)');
   }
 
   final initFuture = SupabaseService.initialize();
