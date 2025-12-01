@@ -31,6 +31,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text('مرحباً بك في موجود', style: TextStyle(fontSize: 24, color: Colors.black)),
+            const SizedBox(height: 8),
+            const Text('v2.0 (No Theme)', style: TextStyle(fontSize: 12, color: Colors.grey)), // CACHE VERIFICATION
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _completeOnboarding,
