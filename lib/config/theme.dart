@@ -75,7 +75,9 @@ class AppTheme {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
+      iconTheme: const IconThemeData(color: AppColors.darkText, size: 24),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
