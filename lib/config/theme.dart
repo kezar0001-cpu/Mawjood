@@ -22,6 +22,8 @@ class AppTheme {
       labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.darkText),
       labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.darkText),
       labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.darkText),
+      // Deprecated 'button' style fallback for legacy widgets that might still access it
+      button: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.darkText),
     );
 
     // 2. Apply the Cairo font family safely.
@@ -51,6 +53,7 @@ class AppTheme {
         labelLarge: googleTheme.labelLarge,
         labelMedium: googleTheme.labelMedium,
         labelSmall: googleTheme.labelSmall,
+        button: googleTheme.button, // Ensure fallback is copied if available, otherwise base is used
       );
     } catch (e) {
       debugPrint('⚠️ [THEME] GoogleFonts failed to load: $e. Using default font.');
